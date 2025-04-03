@@ -1,2 +1,0 @@
-# BeFit
-University Project
