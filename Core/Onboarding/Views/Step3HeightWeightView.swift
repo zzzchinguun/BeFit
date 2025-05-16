@@ -9,8 +9,8 @@ struct Step3HeightWeightView: View {
             VStack(spacing: 30) {
                 // Metric/Imperial Toggle
                 Picker("Систем", selection: $selectedMetric) {
-                    Text("Метрийн систем (см/кг)").tag(true)
-                    Text("Империал систем (фут/фунт)").tag(false)
+                    Text("см/кг").tag(true)
+                    Text("фут/фунт").tag(false)
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal)

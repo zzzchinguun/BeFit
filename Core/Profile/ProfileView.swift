@@ -10,20 +10,22 @@ import SwiftUI
 struct ProfileView: View {
     @EnvironmentObject var viewModel: AuthViewModel
     @State private var selectedTab = 0
-    @State private var showOnboarding = false
+    @State private var navigationPath = NavigationPath()
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("isDarkMode") private var isDarkMode = false
     @State private var showDeleteConfirmation = false
     
     var body: some View {
         if let user = viewModel.currentUser {
-            NavigationStack {
+            NavigationStack(path: $navigationPath) {
                 VStack(spacing: 0) {
-                    if hasCompletedOnboarding {
-                        Button(action: { showOnboarding = true }) {
-                            AnimatedPreferencesButton{
-                            showOnboarding = true
-                        }
+                    if !hasCompletedOnboarding {
+                        Button {
+                            navigationPath.append("onboarding")
+                        } label: {
+                            AnimatedPreferencesButton {
+                                navigationPath.append("onboarding")
+                            }
                         }
                         .padding()
                     }
@@ -45,15 +47,17 @@ struct ProfileView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .background(isDarkMode ? Color.black : Color(.systemGroupedBackground))
                 .preferredColorScheme(isDarkMode ? .dark : .light)
-            }
-            .fullScreenCover(isPresented: $showOnboarding) {
-                OnboardingView()
-                    .presentationDetents([.medium, .large])
-                    .environmentObject(viewModel)
+                .navigationDestination(for: String.self) { route in
+                    if route == "onboarding" {
+                        OnboardingView()
+                            .environmentObject(viewModel)
+                            .navigationBarBackButtonHidden()
+                    }
+                }
             }
             .onAppear {
-                if !hasCompletedOnboarding {
-                    showOnboarding = true
+                if hasCompletedOnboarding {
+                    navigationPath.append("onboarding")
                 }
             }
         }

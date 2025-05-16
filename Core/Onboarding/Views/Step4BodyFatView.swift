@@ -13,7 +13,7 @@ struct Step4BodyFatView: View {
                 } label: {
                     HStack {
                         Image(systemName: "info.circle.fill")
-                        Text("How to Estimate Body Fat?")
+                        Text("Биеийн өөхийг хэрхэн тооцоолох вэ?")
                     }
                     .foregroundColor(.blue)
                     .padding()
@@ -24,7 +24,7 @@ struct Step4BodyFatView: View {
                 // Body Fat Slider
                 VStack(spacing: 15) {
                     HStack {
-                        Text("Body Fat Percentage")
+                        Text("Биеийн өөхний хувь")
                             .font(.headline)
                         Spacer()
                         Text("\(Int(user.bodyFatPercentage ?? 15))%")
@@ -57,7 +57,7 @@ struct Step4BodyFatView: View {
                 
                 // Category Ranges
                 VStack(spacing: 15) {
-                    Text("Reference Ranges")
+                    Text("Лавлагаа")
                         .font(.headline)
                         .padding(.bottom, 5)
                     
@@ -81,29 +81,33 @@ struct Step4BodyFatView: View {
             }
             .padding()
         }
+        .onAppear{
+            print(user.sex!)
+        }
         .sheet(isPresented: $showingGuide) {
             BodyFatGuideView()
+                .presentationDetents([.fraction(0.8)])
         }
     }
     
     private var bodyFatCategory: String {
-        guard let bodyFat = user.bodyFatPercentage else { return "Select your body fat %" }
+        guard let bodyFat = user.bodyFatPercentage else { return "Биеийн өөхний хувийг сонгоно уу" }
         
         if user.sex == "Male" {
             switch bodyFat {
-            case ..<6: return "Essential Fat"
-            case 6..<14: return "Athletic"
-            case 14..<18: return "Fitness"
-            case 18..<25: return "Average"
-            default: return "Above Average"
+            case ..<6: return "Шаардлагатай өөх"
+            case 6..<14: return "Тамирчны түвшин"
+            case 14..<18: return "Фитнес"
+            case 18..<25: return "Дундаж"
+            default: return "Дундажаас дээш"
             }
         } else {
             switch bodyFat {
-            case ..<16: return "Essential Fat"
-            case 16..<24: return "Athletic"
-            case 24..<31: return "Fitness"
-            case 31..<39: return "Average"
-            default: return "Above Average"
+            case ..<16: return "Шаардлагатай өөх"
+            case 16..<24: return "Тамирчны түвшин"
+            case 24..<31: return "Фитнес"
+            case 31..<39: return "Дундаж"
+            default: return "Дундажаас дээш"
             }
         }
     }
@@ -133,19 +137,19 @@ struct Step4BodyFatView: View {
     private var bodyFatRanges: [(category: String, range: String, color: Color)] {
         if user.sex == "Male" {
             return [
-                ("Essential Fat", "2-5%", .red),
-                ("Athletic", "6-13%", .green),
-                ("Fitness", "14-17%", .blue),
-                ("Average", "18-24%", .orange),
-                ("Above Average", "25%+", .red)
+                ("Шаардлагатай өөх", "2-5%", .red),
+                ("Тамирчны түвшин", "6-13%", .green),
+                ("Фитнес", "14-17%", .blue),
+                ("Дундаж", "18-24%", .orange),
+                ("Дундажаас дээш", "25%+", .red)
             ]
         } else {
             return [
-                ("Essential Fat", "10-13%", .red),
-                ("Athletic", "14-20%", .green),
-                ("Fitness", "21-24%", .blue),
-                ("Average", "25-31%", .orange),
-                ("Above Average", "32%+", .red)
+                ("Шаардлагатай өөх", "10-13%", .red),
+                ("Тамирчны түвшин", "14-20%", .green),
+                ("Фитнес", "21-24%", .blue),
+                ("Дундаж", "25-31%", .orange),
+                ("Дундажаас дээш", "32%+", .red)
             ]
         }
     }
@@ -159,34 +163,34 @@ struct BodyFatGuideView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     // Guide content...
-                    Text("How to Estimate Body Fat Percentage")
+                    Text("Биеийн өөхний хувийг хэрхэн тооцоолох вэ?")
                         .font(.title2)
                         .fontWeight(.bold)
                         .padding(.top)
                     
                     Group {
                         guideSection(
-                            title: "Visual Assessment",
-                            description: "Compare your body to reference images",
+                            title: "Харааны үнэлгээ",
+                            description: "Биеэ лавлагааны зургуудтай харьцуулах",
                             icon: "eye.fill"
                         )
                         
                         guideSection(
-                            title: "Body Fat Calipers",
-                            description: "Use calipers to measure skin folds",
+                            title: "Биеийн өөх хэмжигч",
+                            description: "Арьсны нугалаа хэмжих зориулалттай хэмжигч ашиглах",
                             icon: "ruler.fill"
                         )
                         
                         guideSection(
-                            title: "Bioelectrical Impedance",
-                            description: "Use smart scales or handheld devices",
+                            title: "Био-цахилгаан эсэргүүцэл",
+                            description: "Ухаалаг жин эсвэл гар төхөөрөмж ашиглах",
                             icon: "bolt.fill"
                         )
                     }
                 }
                 .padding()
             }
-            .navigationBarItems(trailing: Button("Done") { dismiss() })
+            .navigationBarItems(trailing: Button("Болсон") { dismiss() })
         }
     }
     
@@ -208,4 +212,11 @@ struct BodyFatGuideView: View {
         .background(Color(.secondarySystemBackground))
         .cornerRadius(10)
     }
+}
+
+#Preview{
+    @Previewable
+    @State var previewUser = User.MOCK_USER
+    Step4BodyFatView(user: $previewUser)
+        .environment(\.colorScheme, .dark)
 }

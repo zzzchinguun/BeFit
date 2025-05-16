@@ -2,20 +2,20 @@ import SwiftUI
 
 struct Step6TimelineView: View {
     @Binding var user: User
-    @State private var selectedMetric = true // true for metric, false for imperial
+    @State private var selectedMetric = true
     
     var body: some View {
         ScrollView {
             VStack(spacing: 30) {
                 // Goal Weight Section
                 VStack(spacing: 20) {
-                    Text("Target Weight")
+                    Text("Зорилтот жин")
                         .font(.headline)
                     
                     // Metric Toggle
-                    Picker("System", selection: $selectedMetric) {
-                        Text("Metric (kg)").tag(true)
-                        Text("Imperial (lbs)").tag(false)
+                    Picker("Систем", selection: $selectedMetric) {
+                        Text("Метрийн (кг)").tag(true)
+                        Text("Империал (фунт)").tag(false)
                     }
                     .pickerStyle(.segmented)
                     
@@ -24,10 +24,10 @@ struct Step6TimelineView: View {
                         if selectedMetric {
                             // Metric Weight
                             HStack {
-                                Text("Target:")
+                                Text("Зорилт:")
                                     .foregroundColor(.gray)
                                 Spacer()
-                                Text("\(String(format: "%.1f", user.goalWeight ?? user.weight ?? 70)) kg")
+                                Text("\(String(format: "%.1f", user.goalWeight ?? user.weight ?? 70)) кг")
                                     .font(.title3)
                                     .fontWeight(.semibold)
                             }
@@ -42,13 +42,12 @@ struct Step6TimelineView: View {
                             )
                             .accentColor(.blue)
                             
-                            // Weight Change Indicator
                             if let currentWeight = user.weight, let goalWeight = user.goalWeight {
                                 let difference = goalWeight - currentWeight
                                 HStack {
                                     Image(systemName: difference > 0 ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
                                         .foregroundColor(difference > 0 ? .green : .blue)
-                                    Text("\(abs(difference), specifier: "%.1f") kg to \(difference > 0 ? "gain" : "lose")")
+                                    Text("\(abs(difference), specifier: "%.1f") кг \(difference > 0 ? "нэмэх" : "хасах")")
                                         .foregroundColor(.gray)
                                 }
                             }
@@ -60,10 +59,10 @@ struct Step6TimelineView: View {
                             )
                             
                             HStack {
-                                Text("Target:")
+                                Text("Зорилт:")
                                     .foregroundColor(.gray)
                                 Spacer()
-                                Text("\(goalLbs.wrappedValue) lbs")
+                                Text("\(goalLbs.wrappedValue) фунт")
                                     .font(.title3)
                                     .fontWeight(.semibold)
                             }
@@ -78,13 +77,12 @@ struct Step6TimelineView: View {
                             )
                             .accentColor(.blue)
                             
-                            // Weight Change Indicator
                             if let currentWeight = user.weight, let goalWeight = user.goalWeight {
                                 let differenceLbs = Int((goalWeight - currentWeight) * 2.20462)
                                 HStack {
                                     Image(systemName: differenceLbs > 0 ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
                                         .foregroundColor(differenceLbs > 0 ? .green : .blue)
-                                    Text("\(abs(differenceLbs)) lbs to \(differenceLbs > 0 ? "gain" : "lose")")
+                                    Text("\(abs(differenceLbs)) фунт \(differenceLbs > 0 ? "нэмэх" : "хасах")")
                                         .foregroundColor(.gray)
                                 }
                             }
@@ -97,7 +95,7 @@ struct Step6TimelineView: View {
                 
                 // Timeline Section
                 VStack(spacing: 20) {
-                    Text("Timeline")
+                    Text("Хугацааны төлөвлөгөө")
                         .font(.headline)
                     
                     let weeks = Binding(
@@ -105,7 +103,6 @@ struct Step6TimelineView: View {
                         set: { user.daysToComplete = $0 * 7 }
                     )
                     
-                    // Timeline Slider
                     VStack(spacing: 15) {
                         Slider(value: Binding(
                             get: { Double(weeks.wrappedValue) },
@@ -114,20 +111,19 @@ struct Step6TimelineView: View {
                         .accentColor(.blue)
                         
                         HStack {
-                            Text("\(weeks.wrappedValue) weeks")
+                            Text("\(weeks.wrappedValue) долоо хоног")
                                 .font(.title3)
                                 .fontWeight(.semibold)
                         }
                     }
                     
-                    // Weekly Progress Breakdown
                     if let currentWeight = user.weight,
                        let goalWeight = user.goalWeight,
                        let days = user.daysToComplete {
                         let weeklyChange = (goalWeight - currentWeight) / (Double(days) / 7)
                         
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Weekly Progress")
+                            Text("Долоо хоног тутмын өөрчлөлт")
                                 .font(.subheadline)
                                 .foregroundColor(.gray)
                             
@@ -135,12 +131,12 @@ struct Step6TimelineView: View {
                                 Image(systemName: abs(weeklyChange) < 0.5 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                                     .foregroundColor(abs(weeklyChange) < 0.5 ? .green : .orange)
                                 
-                                Text("\(abs(weeklyChange), specifier: "%.2f") kg per week")
+                                Text("Долоо хоногт \(abs(weeklyChange), specifier: "%.2f") кг")
                                     .font(.subheadline)
                             }
                             
                             if abs(weeklyChange) > 0.5 {
-                                Text("Consider a longer timeline for sustainable results")
+                                Text("Тогтвортой үр дүнд хүрэхийн тулд илүү урт хугацааг сонгоно уу")
                                     .font(.caption)
                                     .foregroundColor(.orange)
                             }

@@ -16,7 +16,7 @@ struct AnimatedPreferencesButton: View {
                     .scaleEffect(bounce ? 1.05 : 1.0) // Minor scaling
                     .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: bounce)
                 
-                Text("Биеийн үзүлэлт тодорхойлох")
+                Text("Биеийн үзүүлэлт тодорхойлох")
                     .fontWeight(.medium)
             }
             .padding(.horizontal, 20)

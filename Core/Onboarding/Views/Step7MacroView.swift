@@ -7,22 +7,22 @@ struct Step7MacroView: View {
     @State private var customCarbs: Double = 0
     @State private var customFat: Double = 0
     @State private var showingCustomize = false
+    @State private var showingSaveSuccess = false
     
     let macroPlans = [
-        "balanced": (protein: 30, carbs: 40, fat: 30),
-        "lowCarb": (protein: 40, carbs: 20, fat: 40),
-        "highProtein": (protein: 40, carbs: 40, fat: 20),
-        "ketogenic": (protein: 30, carbs: 10, fat: 60),
-        "custom": (protein: 0, carbs: 0, fat: 0)
+        "balanced": (name: "Тэнцвэртэй", protein: 30, carbs: 40, fat: 30),
+        "lowCarb": (name: "Бага нүүрс ус", protein: 40, carbs: 20, fat: 40),
+        "highProtein": (name: "Өндөр уураг", protein: 40, carbs: 40, fat: 20),
+        "ketogenic": (name: "Кето", protein: 30, carbs: 10, fat: 60),
+        "custom": (name: "Өөрийн", protein: 0, carbs: 0, fat: 0)
     ]
     
     var body: some View {
         ScrollView {
             VStack(spacing: 25) {
-                // TDEE Display
                 if let tdee = calculateTDEE() {
                     VStack(spacing: 10) {
-                        Text("Daily Calorie Target")
+                        Text("Өдрийн илчлэгийн зорилт")
                             .font(.headline)
                             .foregroundColor(.gray)
                         
@@ -30,7 +30,7 @@ struct Step7MacroView: View {
                             .font(.system(size: 44, weight: .bold))
                             .foregroundColor(.blue)
                         
-                        Text("calories")
+                        Text("ккал")
                             .font(.subheadline)
                             .foregroundColor(.gray)
                     }
@@ -40,15 +40,14 @@ struct Step7MacroView: View {
                     .cornerRadius(15)
                 }
                 
-                // Macro Plan Selection
                 VStack(alignment: .leading, spacing: 15) {
-                    Text("Choose Your Macro Split")
+                    Text("Macro харьцааг сонгох")
                         .font(.headline)
                     
                     ForEach(Array(macroPlans.keys.sorted()), id: \.self) { plan in
                         if plan != "custom" {
                             MacroPlanCard(
-                                planName: plan,
+                                planName: macroPlans[plan]!.name,
                                 protein: macroPlans[plan]!.protein,
                                 carbs: macroPlans[plan]!.carbs,
                                 fat: macroPlans[plan]!.fat,
@@ -62,13 +61,12 @@ struct Step7MacroView: View {
                         }
                     }
                     
-                    // Custom Plan Button
                     Button {
                         showingCustomize = true
                     } label: {
                         HStack {
                             Image(systemName: "slider.horizontal.3")
-                            Text("Customize Macros")
+                            Text("Өөрийн macro тохируулах")
                             Spacer()
                             Image(systemName: "chevron.right")
                         }
@@ -78,32 +76,43 @@ struct Step7MacroView: View {
                     }
                 }
                 
-                // Macro Breakdown
                 if let macros = user.macros {
                     VStack(spacing: 15) {
-                        Text("Daily Macro Targets")
+                        Text("Өдрийн macro зорилт")
                             .font(.headline)
                         
                         MacroBreakdownRow(
-                            title: "Protein",
+                            title: "Уураг",
                             amount: Double(macros.protein),
                             color: .blue,
                             icon: "figure.strengthtraining.traditional"
                         )
                         
                         MacroBreakdownRow(
-                            title: "Carbs",
+                            title: "Нүүрс ус",
                             amount: Double(macros.carbs),
                             color: .green,
                             icon: "leaf.fill"
                         )
                         
                         MacroBreakdownRow(
-                            title: "Fat",
+                            title: "Өөх тос",
                             amount: Double(macros.fat),
                             color: .yellow,
                             icon: "drop.fill"
                         )
+                        
+                        Button(action: saveMacrosToPhotos) {
+                            HStack {
+                                Image(systemName: "square.and.arrow.down")
+                                Text("Зурган файлаар хадгалах")
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
+                        }
                     }
                     .padding()
                     .background(Color(.secondarySystemBackground))
@@ -114,17 +123,55 @@ struct Step7MacroView: View {
         }
         .sheet(isPresented: $showingCustomize) {
             CustomMacrosView(user: $user, showingCustomize: $showingCustomize)
+                .presentationDetents([.fraction(0.8)])
+        }
+        .alert("Амжилттай", isPresented: $showingSaveSuccess) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Зураг амжилттай хадгалагдлаа")
+        }
+    }
+    
+    private func saveMacrosToPhotos() {
+        guard let macros = user.macros, let tdee = calculateTDEE() else { return }
+        
+        let renderer = ImageRenderer(content:
+            VStack(spacing: 20) {
+                Text("BeFit - Таны Macro Зорилтууд")
+                    .font(.title2)
+                    .bold()
+                
+                VStack(spacing: 15) {
+                    Text("Өдрийн илчлэг: \(Int(tdee)) ккал")
+                        .font(.headline)
+                    
+                    VStack(spacing: 10) {
+                        MacroRow(name: "Уураг", amount: macros.protein, color: .blue)
+                        MacroRow(name: "Нүүрс ус", amount: macros.carbs, color: .green)
+                        MacroRow(name: "Өөх тос", amount: macros.fat, color: .yellow)
+                    }
+                }
+                .padding()
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(12)
+            }
+            .padding()
+            .frame(width: UIScreen.main.bounds.width - 40)
+            .background(Color(.systemBackground))
+        )
+        
+        if let uiImage = renderer.uiImage {
+            UIImageWriteToSavedPhotosAlbum(uiImage, nil, nil, nil)
+            showingSaveSuccess = true
         }
     }
     
     private func calculateTDEE() -> Double? {
-        // Implement TDEE calculation based on user's data
         guard let weight = user.weight,
               let height = user.height,
               let age = user.age,
               let activityLevel = user.activityLevel else { return nil }
         
-        // Basic BMR calculation using Harris-Benedict equation
         let bmr: Double
         if user.sex == "Male" {
             bmr = 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * Double(age))
@@ -132,7 +179,6 @@ struct Step7MacroView: View {
             bmr = 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * Double(age))
         }
         
-        // Activity multiplier
         let activityMultiplier: Double
         switch activityLevel {
         case "Sedentary": activityMultiplier = 1.2
@@ -155,9 +201,9 @@ struct Step7MacroView: View {
         let fatCals = tdee * Double(macroSplit.fat) / 100
         
         user.macros = Macros(
-            protein: Int(proteinCals / 4), // 4 calories per gram of protein
-            carbs: Int(carbsCals / 4),     // 4 calories per gram of carbs
-            fat: Int(fatCals / 9)          // 9 calories per gram of fat
+            protein: Int(proteinCals / 4),
+            carbs: Int(carbsCals / 4),
+            fat: Int(fatCals / 9)
         )
     }
 }
@@ -174,7 +220,7 @@ struct MacroPlanCard: View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text(planName.capitalized)
+                    Text(planName)
                         .font(.headline)
                     Spacer()
                     if isSelected {
@@ -237,7 +283,7 @@ struct MacroBreakdownRow: View {
             
             Spacer()
             
-            Text("\(Int(amount))g")
+            Text("\(Int(amount))г")
                 .font(.headline)
                 .foregroundColor(color)
         }
@@ -255,7 +301,6 @@ struct CustomMacrosView: View {
         self._user = user
         self._showingCustomize = showingCustomize
         
-        // Initialize protein, carbs, and fat with current values or defaults
         let currentMacros = user.wrappedValue.macros
         self._protein = State(initialValue: Double(currentMacros?.protein ?? 0))
         self._carbs = State(initialValue: Double(currentMacros?.carbs ?? 0))
@@ -266,10 +311,9 @@ struct CustomMacrosView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 25) {
-                    // TDEE Display
                     if let tdee = calculateTDEE() {
                         VStack(spacing: 5) {
-                            Text("Daily Calories")
+                            Text("Өдрийн илчлэг")
                                 .font(.headline)
                             Text("\(Int(tdee))")
                                 .font(.system(size: 36, weight: .bold))
@@ -278,24 +322,23 @@ struct CustomMacrosView: View {
                         .padding()
                     }
                     
-                    // Macro Sliders
                     VStack(spacing: 20) {
                         MacroSlider(
-                            title: "Protein",
+                            title: "Уураг",
                             value: $protein,
                             color: .blue,
                             icon: "figure.strengthtraining.traditional"
                         )
                         
                         MacroSlider(
-                            title: "Carbs",
+                            title: "Нүүрс ус",
                             value: $carbs,
                             color: .green,
                             icon: "leaf.fill"
                         )
                         
                         MacroSlider(
-                            title: "Fat",
+                            title: "Өөх тос",
                             value: $fat,
                             color: .yellow,
                             icon: "drop.fill"
@@ -303,26 +346,25 @@ struct CustomMacrosView: View {
                     }
                     .padding()
                     
-                    // Total Percentage
                     let total = protein + carbs + fat
-                    Text("Total: \(Int(total))%")
+                    Text("Нийт: \(Int(total))%")
                         .font(.headline)
                         .foregroundColor(total == 100 ? .green : .red)
                     
                     if total != 100 {
-                        Text("Adjust values to total 100%")
+                        Text("Утга зүйг 100% болгохыг хүснэ")
                             .font(.caption)
                             .foregroundColor(.red)
                     }
                 }
                 .padding()
             }
-            .navigationTitle("Custom Macros")
+            .navigationTitle("Өөрийн macro тохируулах")
             .navigationBarItems(
-                leading: Button("Cancel") {
+                leading: Button("Буцах") {
                     showingCustomize = false
                 },
-                trailing: Button("Save") {
+                trailing: Button("Хадгалах") {
                     saveCustomMacros()
                     showingCustomize = false
                 }
@@ -392,6 +434,23 @@ struct MacroSlider: View {
             
             Slider(value: $value, in: 0...100, step: 5)
                 .accentColor(color)
+        }
+    }
+}
+
+struct MacroRow: View {
+    let name: String
+    let amount: Int
+    let color: Color
+    
+    var body: some View {
+        HStack {
+            Text(name)
+                .foregroundColor(.primary)
+            Spacer()
+            Text("\(amount)г")
+                .foregroundColor(color)
+                .fontWeight(.semibold)
         }
     }
 }

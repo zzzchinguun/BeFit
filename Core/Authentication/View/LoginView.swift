@@ -42,14 +42,14 @@ struct LoginView: View {
                 VStack(spacing: 20) {
                     // Email Field
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("И-мейл")
-                            .foregroundColor(.gray)
-                            .font(.callout)
+//                        Text("И-мейл")
+//                            .foregroundColor(.gray)
+//                            .font(.callout)
                         
                         HStack {
                             Image(systemName: "envelope.fill")
                                 .foregroundColor(.blue)
-                            TextField("И-мэйл хаягаа оруулах", text: $email)
+                            TextField("И-мэйл", text: $email)
                                 .textInputAutocapitalization(.never)
                                 .keyboardType(.emailAddress)
                         }
@@ -60,18 +60,18 @@ struct LoginView: View {
                     
                     // Password Field
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Нууц үг")
-                            .foregroundColor(.gray)
-                            .font(.callout)
+//                        Text("Нууц үг")
+//                            .foregroundColor(.gray)
+//                            .font(.callout)
                         
                         HStack {
                             Image(systemName: "lock.fill")
                                 .foregroundColor(.blue)
                             Group {
                                 if showPassword {
-                                    TextField("Нууц үгээ оруулах", text: $password)
+                                    TextField("Нууц үг", text: $password)
                                 } else {
-                                    SecureField("Нууц үгээ оруулах", text: $password)
+                                    SecureField("Нууц үг", text: $password)
                                 }
                             }
                             

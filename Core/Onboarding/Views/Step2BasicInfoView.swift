@@ -3,7 +3,7 @@ import SwiftUI
 struct Step2BasicInfoView: View {
     @Binding var user: User
     
-    let genderOptions = ["Эрэгтэй", "Эмэгтэй", "Бусад"]
+    let genderOptions = ["Male", "Female", "Other"]
     let activityLevels = [
         "Суугаа амьдралын хэв маяг": "Бараг дасгал хийдэггүй",
         "Хөнгөн идэвхтэй": "Хөнгөн дасгал 7 хоногт 1-3 удаа",
@@ -42,12 +42,21 @@ struct Step2BasicInfoView: View {
                             Button {
                                 user.sex = gender
                             } label: {
-                                Text(gender)
-                                    .padding(.vertical, 8)
-                                    .padding(.horizontal, 16)
-                                    .background(user.sex == gender ? Color.blue : Color(.secondarySystemBackground))
-                                    .foregroundColor(user.sex == gender ? .white : .primary)
-                                    .cornerRadius(8)
+                                if gender == "Other"{
+                                    Text("Бусад")
+                                        .padding(.vertical, 8)
+                                        .padding(.horizontal, 16)
+                                        .background(user.sex == gender ? Color.blue : Color(.secondarySystemBackground))
+                                        .foregroundColor(user.sex == gender ? .white : .primary)
+                                        .cornerRadius(8)
+                                } else {
+                                    Text(gender == "Male" ? "Эрэгтэй" : "Эмэгтэй")
+                                        .padding(.vertical, 8)
+                                        .padding(.horizontal, 16)
+                                        .background(user.sex == gender ? Color.blue : Color(.secondarySystemBackground))
+                                        .foregroundColor(user.sex == gender ? .white : .primary)
+                                        .cornerRadius(8)
+                                }
                             }
                         }
                     }

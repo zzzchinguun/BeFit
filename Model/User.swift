@@ -48,6 +48,17 @@ extension User {
         id: NSUUID().uuidString,
         firstName: "Chinguun",
         lastName: "Khongor",
-        email: "test@gmail.com"
+        email: "test@gmail.com",
+        age: 25,
+        weight: 70.0,
+        height: 175.0,
+        sex: "male",
+        activityLevel: "moderate",
+        bodyFatPercentage: 15.0,
+        goalWeight: 65.0,
+        daysToComplete: 60,
+        goal: "weight_loss",
+        tdee: 2300.0,
+        macros: Macros(protein: 140, carbs: 250, fat: 60)
     )
 }

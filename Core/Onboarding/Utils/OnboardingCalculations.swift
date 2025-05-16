@@ -49,11 +49,19 @@ func calculateTDEE(user: User) -> (resultString: String, tdee: Double) {
     let goalCalories = adjustedTdee - safeDailyDeficit
     
     let resultString = """
-    Weight: \(Int(weight)) kg
-    Fat Mass: \(Int(fm)) kg
-    TDEE: \(Int(tdee)) kcal, BMR: \(Int(bmr)) kcal, LBM: \(Int(lbm)) kg
-    Your body fat percentage will be \(String(format: "%.1f", newBodyFatPercentage))%
-    You will need to eat \(Int(goalCalories)) calories (\(Int((safeDailyDeficit / tdee) * 100))% deficit) per day for \(daysToComplete) days to reach your goal.
+    Таны биеийн үзүүлэлтүүд:
+    Одоогийн жин: \(Int(weight)) кг
+    Өөхний жин: \(Int(fm)) кг
+    Булчингийн масс: \(Int(lbm)) кг
+    
+    Энергийн хэрэглээ:
+    Өдрийн нийт илчлэг (TDEE): \(Int(tdee)) ккал
+    Суурь бодисын солилцоо (BMR): \(Int(bmr)) ккал
+    
+    Таны зорилго:
+    Өөх тосны хувь \(String(format: "%.1f", newBodyFatPercentage))% болно
+    \(daysToComplete) хоногийн турш өдөрт \(Int(goalCalories)) ккал
+    (\(Int((safeDailyDeficit / tdee) * 100))% \(goalCalories > safeDailyDeficit ? "хасалт" : "нэмэлт")) хэрэгтэй.
     """
     
     return (resultString, tdee)
@@ -67,11 +75,11 @@ func calculateMaximumMuscularPotential(height: Double) -> String {
     let weightAt15Percent = lbm / (1 - 0.15)
     
     let result = """
-    According to Martin Berkhan's formula:
-    - Your maximum muscular potential is \(String(format: "%.1f", weightAt5Percent)) kg at 5% body fat.
-    - At 10% body fat, you'd weigh \(String(format: "%.1f", weightAt10Percent)) kg.
-    - At 15% body fat, you'd weigh \(String(format: "%.1f", weightAt15Percent)) kg.
-    These are good goals to aim for if you are bulking up!
+    Мартин Беркханы томьёоны дагуу:
+    - 5% өөхтэй үед таны натурал булчингийн дээд боломж \(String(format: "%.1f", weightAt5Percent)) кг байна.
+    - 10% өөхтэй үед таны жин \(String(format: "%.1f", weightAt10Percent)) кг байна.
+    - 15% өөхтэй үед таны жин \(String(format: "%.1f", weightAt15Percent)) кг байна.
+    Хэрэв та булчин нэмэх зорилготой бол эдгээр нь таны зорилго байж болно!
     """
     
     return result
