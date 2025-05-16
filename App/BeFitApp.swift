@@ -10,7 +10,8 @@ import Firebase
 
 @main
 struct BeFitApp: App {
-    @StateObject var viewModel = AuthViewModel()
+    @StateObject var authViewModel = AuthViewModel()
+    @StateObject var mealViewModel = MealViewModel()
 
     init() {
         FirebaseApp.configure()
@@ -19,7 +20,8 @@ struct BeFitApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(viewModel)
+                .environmentObject(authViewModel)
+                .environmentObject(mealViewModel)
         }
     }
 }

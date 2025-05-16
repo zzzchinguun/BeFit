@@ -19,7 +19,7 @@ struct ProfileView: View {
         if let user = viewModel.currentUser {
             NavigationStack(path: $navigationPath) {
                 VStack(spacing: 0) {
-                    if !hasCompletedOnboarding {
+                    if hasCompletedOnboarding {
                         Button {
                             navigationPath.append("onboarding")
                         } label: {
@@ -106,21 +106,28 @@ struct ProfileView: View {
     }
     
     private func dashboardView(user: User) -> some View {
-        VStack(spacing: 20) {
-            Text("Dashboard")
-                .font(.title)
-                .fontWeight(.bold)
-            
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 20) {
-                metricCard(title: "Current Weight", value: "\(Int(user.weight ?? 0))kg", icon: "scalemass.fill")
-                metricCard(title: "Goal Weight", value: "\(Int(user.goalWeight ?? 0))kg", icon: "target")
-                metricCard(title: "Days Left", value: "\(user.daysToComplete ?? 0)", icon: "calendar")
-                metricCard(title: "Daily Calories", value: "\(Int(user.tdee ?? 0))", icon: "flame.fill")
+        ScrollView{
+            VStack(spacing: 20) {
+                Text("Dashboard")
+                    .font(.title)
+                    .fontWeight(.bold)
+                
+                LazyVGrid(columns: [
+                    GridItem(.flexible()),
+                    GridItem(.flexible())
+                ], spacing: 20) {
+                    metricCard(title: "Current Weight", value: "\(Int(user.weight ?? 0))kg", icon: "scalemass.fill")
+                    metricCard(title: "Goal Weight", value: "\(Int(user.goalWeight ?? 0))kg", icon: "target")
+                    metricCard(title: "Days Left", value: "\(user.daysToComplete ?? 0)", icon: "calendar")
+                    metricCard(title: "Daily Calories", value: "\(Int(user.tdee ?? 0))", icon: "flame.fill")
+                }
+                .padding(.horizontal)
+                
+                Divider()
+                
+                // Meal tracking
+                MealsView()
             }
-            .padding()
         }
     }
     
