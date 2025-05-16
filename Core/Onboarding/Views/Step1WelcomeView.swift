@@ -71,8 +71,8 @@ struct FeatureRow: View {
                 Text(title)
                     .font(.headline)
                 Text(description)
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
+                .font(.subheadline)
+                .foregroundColor(.gray)
             }
         }
     }

@@ -21,7 +21,7 @@ struct Step2BasicInfoView: View {
                         .font(.headline)
                     
                     HStack {
-                        TextField("Нас", value: $user.age, format: .number)
+                        TextField("18", value: $user.age, format: .number)
                             .keyboardType(.numberPad)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                         

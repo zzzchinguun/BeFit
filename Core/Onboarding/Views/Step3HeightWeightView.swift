@@ -7,18 +7,32 @@ struct Step3HeightWeightView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 30) {
-                // Metric/Imperial Toggle
-                Picker("Систем", selection: $selectedMetric) {
-                    Text("см/кг").tag(true)
-                    Text("фут/фунт").tag(false)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
                 
                 // Height Input
                 VStack(spacing: 15) {
-                    Text("Өндөр")
-                        .font(.headline)
+                    HStack{
+                        Text("Өндөр")
+                            .font(.headline)
+                        Spacer()
+                        Button(action: {
+                            if let currentHeight = user.height {
+                                   user.height = currentHeight - 1
+                               }
+                        }){
+                            Image(systemName: "minus.circle.fill")
+                        }
+                        Text("\(Int(user.height ?? 170)) см")
+                            .font(.title3)
+                            .frame(width: 80)
+                        Button(action: {
+                            if let currentHeight = user.height {
+                                user.height = currentHeight + 1
+                            }
+                        }){
+                            Image(systemName: "plus.circle.fill")
+                        }
+                    }
+                    .padding(.horizontal)
                     
                     if selectedMetric {
                         // Metric Height (cm)
@@ -32,10 +46,9 @@ struct Step3HeightWeightView: View {
                                 step: 1
                             )
                             .accentColor(.blue)
+                            .padding(.horizontal)
                             
-                            Text("\(Int(user.height ?? 170)) см")
-                                .font(.title3)
-                                .frame(width: 80)
+                            
                         }
                     } else {
                         // Imperial Height (ft/in)
@@ -82,9 +95,31 @@ struct Step3HeightWeightView: View {
                 
                 // Weight Input
                 VStack(spacing: 15) {
-                    Text("Жин")
-                        .font(.headline)
-                    
+                    VStack{
+                        HStack{
+                            Text("Жин")
+                                .font(.headline)
+                            Spacer()
+                            Button(action: {
+                                if let currentWeight = user.weight {
+                                    user.weight = currentWeight - 1
+                                }
+                            }){
+                                Image(systemName: "minus.circle.fill")
+                            }
+                            Text(String(format: "%.1f кг", user.weight ?? 70))
+                                .font(.title3)
+                                .frame(width: 80)
+                            Button(action: {
+                                if let currentWeight = user.weight {
+                                    user.weight = currentWeight + 1
+                                }
+                            }){
+                                Image(systemName: "plus.circle.fill")
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
                     if selectedMetric {
                         // Metric Weight (kg)
                         HStack {
@@ -98,10 +133,8 @@ struct Step3HeightWeightView: View {
                             )
                             .accentColor(.blue)
                             
-                            Text(String(format: "%.1f кг", user.weight ?? 70))
-                                .font(.title3)
-                                .frame(width: 80)
                         }
+                        .padding(.horizontal)
                     } else {
                         // Imperial Weight (lbs)
                         let lbs = Binding(
@@ -131,6 +164,12 @@ struct Step3HeightWeightView: View {
                 .cornerRadius(15)
                 .padding(.horizontal)
                 
+                Picker("Систем", selection: $selectedMetric) {
+                    Text("см/кг").tag(true)
+                    Text("фут/фунт").tag(false)
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
                 // BMI Display
                 if let bmi = calculateBMI() {
                     VStack(spacing: 10) {
@@ -183,4 +222,8 @@ struct Step3HeightWeightView: View {
             return .red
         }
     }
+}
+
+#Preview {
+    Step3HeightWeightView(user: .constant(User(id: "", firstName: "", lastName: "", email: "")))
 }

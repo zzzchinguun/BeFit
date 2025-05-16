@@ -27,7 +27,7 @@ struct OnboardingView: View {
                             )
                     }
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 24)
                 
                 // Step Title
                 Text(stepTitle)
@@ -89,13 +89,12 @@ struct OnboardingView: View {
                             Image(systemName: "chevron.left")
                             Text("Буцах")
                         }
-                        .foregroundColor(.white)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 12)
                         .background(Color.gray.opacity(0.0))
                         .overlay(
                             Capsule()
-                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                .stroke(Color.blue, lineWidth: 1)
                         )
                     }
                     .clipShape(Capsule())
@@ -105,13 +104,12 @@ struct OnboardingView: View {
                             Image(systemName: "chevron.left.chevron.left.dotted")
                             Text("Алгасах")
                         }
-                        .foregroundColor(.white)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 12)
                         .background(Color.gray.opacity(0.0))
                         .overlay(
                             Capsule()
-                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                .stroke(Color.blue, lineWidth: 1)
                         )
                     }
                     .clipShape(Capsule())
