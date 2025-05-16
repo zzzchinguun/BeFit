@@ -37,8 +37,11 @@ struct ProfileView: View {
                         dashboardView(user: user)
                             .tag(1)
                         
-                        progressView
+                        ExercisesView()
                             .tag(2)
+                        
+                        progressView
+                            .tag(3)
                     }
                     .tabViewStyle(.page(indexDisplayMode: .never))
                     
@@ -65,7 +68,7 @@ struct ProfileView: View {
     
     private var customTabBar: some View {
         HStack(spacing: 0) {
-            ForEach(0..<3) { index in
+            ForEach(0..<4) { index in
                 Button(action: {
                     withAnimation {
                         selectedTab = index
@@ -91,7 +94,8 @@ struct ProfileView: View {
         switch index {
         case 0: return "person.circle.fill"
         case 1: return "chart.bar.fill"
-        case 2: return "arrow.up.right.circle.fill"
+        case 2: return "dumbbell.fill"
+        case 3: return "arrow.up.right.circle.fill"
         default: return ""
         }
     }
@@ -100,7 +104,8 @@ struct ProfileView: View {
         switch index {
         case 0: return "Profile"
         case 1: return "Dashboard"
-        case 2: return "Progress"
+        case 2: return "Exercises"
+        case 3: return "Progress"
         default: return ""
         }
     }

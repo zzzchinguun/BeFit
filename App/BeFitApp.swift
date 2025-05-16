@@ -22,6 +22,12 @@ struct BeFitApp: App {
             ContentView()
                 .environmentObject(authViewModel)
                 .environmentObject(mealViewModel)
+                .onAppear {
+                    Task {
+                        // Setup test user for development environment
+                        authViewModel.setupTestUser()
+                    }
+                }
         }
     }
 }

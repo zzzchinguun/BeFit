@@ -132,6 +132,22 @@ class AuthViewModel: ObservableObject {
         guard let snapshot = try? await Firestore.firestore().collection("users").document(uid).getDocument() else { return }
         self.currentUser = try? snapshot.data(as: User.self)
         
+        // Notify UserService about user change
+        if let user = self.currentUser {
+            NotificationCenter.default.post(name: Notification.Name("userSessionChanged"), object: user)
+        }
+        
         print("Debug: Current user is \(self.currentUser?.email ?? "No user")")
+    }
+    
+    // Helper method to provide a simulated user for testing
+    func setupTestUser() {
+        // Set a mock user when running in simulator/debug mode
+        #if DEBUG
+        if self.currentUser == nil {
+            self.currentUser = User.MOCK_USER
+            NotificationCenter.default.post(name: Notification.Name("userSessionChanged"), object: User.MOCK_USER)
+        }
+        #endif
     }
 }
