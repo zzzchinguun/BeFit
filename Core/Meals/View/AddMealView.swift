@@ -241,19 +241,21 @@ struct AddMealView: View {
     }
     
     private func calculateCalories() {
-        guard let weight = Int(weight),
-              let proteinValue = Int(protein),
-              let carbsValue = Int(carbs),
-              let fatValue = Int(fat) else {
+        guard let weight = Double(weight),
+              let proteinValue = Double(protein),
+              let carbsValue = Double(carbs),
+              let fatValue = Double(fat) else {
             calories = ""
             return
         }
-        
-        let calculatedCalories = weight/100 * ((proteinValue * proteinCaloriesPerGram) +
-                                               (carbsValue * carbsCaloriesPerGram) +
-                                               (fatValue * fatCaloriesPerGram))
-        
-        calories = "\(calculatedCalories)"
+
+        let totalCaloriesPer100g = (proteinValue * Double(proteinCaloriesPerGram)) +
+                                   (carbsValue * Double(carbsCaloriesPerGram)) +
+                                   (fatValue * Double(fatCaloriesPerGram))
+
+        let calculatedCalories = (weight / 100.0) * totalCaloriesPer100g
+
+        calories = String(Int(calculatedCalories.rounded()))
     }
     
     private func addMeal() async {

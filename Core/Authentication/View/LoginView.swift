@@ -158,7 +158,11 @@ struct LoginView: View {
                     isSuccess: false,
                     title: "Нэвтрэхэд алдаа гарлаа",
                     message: loginError != nil ? getUserFriendlyErrorMessage(from: loginError!) : "Тодорхойгүй алдаа гарлаа. Дахин оролдоно уу.",
-                    action: nil
+                    action: {
+                        // Clear error state when sheet is dismissed
+                        errorMessage = ""
+                        loginError = nil
+                    }
                 )
                 
                 Spacer()

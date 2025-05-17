@@ -25,6 +25,33 @@ class ExerciseViewModel: ObservableObject {
             fetchUserCustomExercises(userId: user.id)
             fetchUserWorkoutLogs(userId: user.id)
         }
+        
+        // Add observer for user session changes
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleUserSessionChange),
+            name: Notification.Name("userSessionChanged"),
+            object: nil
+        )
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    @objc private func handleUserSessionChange(_ notification: Notification) {
+        if let user = notification.object as? User {
+            // User logged in
+            fetchUserCustomExercises(userId: user.id)
+            fetchUserWorkoutLogs(userId: user.id)
+        } else {
+            // User logged out
+            DispatchQueue.main.async {
+                self.workoutLogs = []
+                self.exercises = Exercise.defaultExercises
+                self.filterExercises()
+            }
+        }
     }
     
     // MARK: - Exercise Methods
@@ -146,12 +173,52 @@ class ExerciseViewModel: ObservableObject {
             .whereField("userId", isEqualTo: userId)
             .order(by: "date", descending: true)
             .getDocuments { [weak self] snapshot, error in
-                guard let self = self, let documents = snapshot?.documents, error == nil else {
-                    print("Error fetching workout logs: \(error?.localizedDescription ?? "Unknown error")")
+                guard let self = self else { return }
+                
+                if let error = error {
+                    print("Error fetching workout logs: \(error.localizedDescription)")
+                    
+                    // Check if it's an index error
+                    if error.localizedDescription.contains("requires an index") {
+                        // Try fetching without ordering as a fallback
+                        self.fetchWorkoutLogsWithoutOrdering(userId: userId)
+                    }
+                    return
+                }
+                
+                guard let documents = snapshot?.documents else {
+                    print("No documents found")
                     return
                 }
                 
                 let logs = documents.compactMap { try? $0.data(as: WorkoutLog.self) }
+                DispatchQueue.main.async {
+                    self.workoutLogs = logs
+                }
+            }
+    }
+    
+    private func fetchWorkoutLogsWithoutOrdering(userId: String) {
+        let db = Firestore.firestore()
+        
+        db.collection("workoutLogs")
+            .whereField("userId", isEqualTo: userId)
+            .getDocuments { [weak self] snapshot, error in
+                guard let self = self else { return }
+                
+                if let error = error {
+                    print("Error fetching workout logs without ordering: \(error.localizedDescription)")
+                    return
+                }
+                
+                guard let documents = snapshot?.documents else {
+                    print("No documents found")
+                    return
+                }
+                
+                let logs = documents.compactMap { try? $0.data(as: WorkoutLog.self) }
+                    .sorted { $0.date > $1.date } // Sort in memory instead
+                
                 DispatchQueue.main.async {
                     self.workoutLogs = logs
                 }
