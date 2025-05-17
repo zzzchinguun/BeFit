@@ -15,6 +15,7 @@ struct MealsView: View {
     @State private var mealToDelete: Meal?
     @State private var addedMealId: String? = nil
     @State private var shouldHighlightNewMeal = false
+    @State private var currentDetent: PresentationDetent = .medium
     
     var body: some View {
         VStack(spacing: 20) {
@@ -27,7 +28,11 @@ struct MealsView: View {
             mealsList
         }
         .sheet(isPresented: $showAddMealSheet) {
-            AddMealView(viewModel: viewModel)
+            AddMealView(viewModel: viewModel, onInputFocus: {
+                currentDetent = .large
+                print("Focused")
+            })
+                .presentationDetents([.fraction(0.99), .medium, .large], selection: $currentDetent)
                 .onDisappear {
                     // Fetch the newly added meal ID when sheet is dismissed
                     if !viewModel.dailyMeals.isEmpty, let lastMeal = viewModel.dailyMeals.first {
@@ -258,7 +263,7 @@ struct MealsView: View {
     
     // MARK: - Meal Row Item
     private func mealRowView(for meal: Meal) -> some View {
-        MealRowView(meal: meal) {
+        MealRowView(meal: meal, viewModel: viewModel) {
             mealToDelete = meal
             showDeleteAlert = true
         }

@@ -228,6 +228,10 @@ struct OnboardingView: View {
                     tdee: user.tdee,
                     macros: user.macros
                 )
+                
+                // Explicitly set the onboarding completion flag
+                UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+                
                 dismiss()
             } catch {
                 isLoading = false

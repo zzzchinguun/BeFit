@@ -8,6 +8,7 @@
 import Foundation
 import FirebaseFirestore
 import FirebaseAuth
+import Combine
 
 protocol AuthenticationFormProtocol {
     var formIsValid: Bool { get }
@@ -15,139 +16,140 @@ protocol AuthenticationFormProtocol {
 
 @MainActor
 class AuthViewModel: ObservableObject {
+    // MARK: - Properties
+    
+    /// Published user session
     @Published var userSession: FirebaseAuth.User?
+    
+    /// Published current user
     @Published var currentUser: User?
     
-    init() {
+    /// Auth service reference
+    private let authService: AuthServiceProtocol
+    
+    /// Cancellables set to store subscriptions
+    private var cancellables = Set<AnyCancellable>()
+    
+    // MARK: - Init
+    
+    init(authService: AuthServiceProtocol = ServiceContainer.shared.authService) {
+        self.authService = authService
+        
+        // Set initial user session
         self.userSession = Auth.auth().currentUser
         
-        Task{
-            await fetchUser()
+        // Subscribe to current user changes
+        setupSubscriptions()
+        
+        Task {
+            await authService.fetchUser()
         }
     }
     
-    func signIn(withEmail email: String, password: String) async throws{
-        print("Signing in")
-        do{
-            let result = try await Auth.auth().signIn(withEmail: email, password: password)
-            self.userSession = result.user
-            await fetchUser()
+    // MARK: - Setup
+    
+    private func setupSubscriptions() {
+        // Subscribe to current user changes from the auth service
+        authService.currentUser
+            .receive(on: RunLoop.main)
+            .sink { [weak self] user in
+                self?.currentUser = user
+            }
+            .store(in: &cancellables)
+    }
+    
+    // MARK: - Authentication Methods
+    
+    /// Sign in with email and password
+    func signIn(withEmail email: String, password: String) async throws {
+        do {
+            try await authService.signIn(email: email, password: password)
+            self.userSession = Auth.auth().currentUser
         } catch {
             print("DEBUG log in failed with error: \(error.localizedDescription)")
+            throw error
         }
     }
     
-    func createUser(withEmail email: String, password: String, firstName: String, lastName: String) async throws{
-        print("Creating user")
+    /// Create a new user
+    func createUser(withEmail email: String, password: String, firstName: String, lastName: String) async throws {
         do {
-            let result = try await Auth.auth().createUser(withEmail: email, password: password)
-            self.userSession = result.user
-            let user = User(id: result.user.uid, firstName: firstName, lastName: lastName, email: email)
-            let encodedUser = try Firestore.Encoder().encode(user)
-            try await Firestore.firestore().collection("users").document(user.id).setData(encodedUser)
-            await fetchUser()
+            try await authService.createUser(email: email, password: password, firstName: firstName, lastName: lastName)
+            self.userSession = Auth.auth().currentUser
         } catch {
-            print(error.localizedDescription)
+            print("DEBUG: Failed to create user with error: \(error.localizedDescription)")
+            throw error
         }
     }
     
+    /// Update user fitness data
     func updateUserFitnessData(age: Int?, weight: Double?, height: Double?,
                              sex: String?, activityLevel: String?,
                              bodyFatPercentage: Double?, goalWeight: Double?,
                              daysToComplete: Int?, goal: String?,
                              tdee: Double?, macros: Macros?) async throws {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
+        // Create dictionary of updates
+        var userData: [String: Any] = [:]
         
-        // Create an updated user object
-        var updatedUser = currentUser
-        updatedUser?.age = age
-        updatedUser?.weight = weight
-        updatedUser?.height = height
-        updatedUser?.sex = sex
-        updatedUser?.activityLevel = activityLevel
-        updatedUser?.bodyFatPercentage = bodyFatPercentage
-        updatedUser?.goalWeight = goalWeight
-        updatedUser?.daysToComplete = daysToComplete
-        updatedUser?.goal = goal
-        updatedUser?.tdee = tdee
-        updatedUser?.macros = macros
+        if let age = age { userData["age"] = age }
+        if let weight = weight { userData["weight"] = weight }
+        if let height = height { userData["height"] = height }
+        if let sex = sex { userData["sex"] = sex }
+        if let activityLevel = activityLevel { userData["activityLevel"] = activityLevel }
+        if let bodyFatPercentage = bodyFatPercentage { userData["bodyFatPercentage"] = bodyFatPercentage }
+        if let goalWeight = goalWeight { userData["goalWeight"] = goalWeight }
+        if let daysToComplete = daysToComplete { userData["daysToComplete"] = daysToComplete }
+        if let goal = goal { userData["goal"] = goal }
+        if let tdee = tdee { userData["tdee"] = tdee }
+        if let macros = macros {
+            userData["macros"] = [
+                "protein": macros.protein,
+                "carbs": macros.carbs,
+                "fat": macros.fat
+            ]
+        }
         
         do {
-            let encodedUser = try Firestore.Encoder().encode(updatedUser)
-            try await Firestore.firestore().collection("users").document(uid).setData(encodedUser)
-            self.currentUser = updatedUser
-            // Set onboarding completion flag
-            UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+            try await authService.updateUserFitnessData(userData: userData)
         } catch {
             print("DEBUG: Failed to update user data with error: \(error.localizedDescription)")
             throw error
         }
     }
     
-    func resetPassword(withEmail email: String) async throws{
+    /// Reset password
+    func resetPassword(withEmail email: String) async throws {
         do {
-             try await Auth.auth().sendPasswordReset(withEmail: email)
+            try await authService.resetPassword(email: email)
         } catch {
             print("DEBUG: Failed to reset password with error: \(error.localizedDescription)")
+            throw error
         }
     }
     
+    /// Sign out
     func signOut() {
         do {
-            try Auth.auth().signOut()
+            try authService.signOut()
             self.userSession = nil
-            self.currentUser = nil
-            // Reset onboarding flag when signing out
-            UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
         } catch {
             print("DEBUG: Failed to sign out with error: \(error.localizedDescription)")
         }
     }
     
+    /// Delete account
     func deleteAccount() async throws {
-        guard let user = Auth.auth().currentUser else { return }
-        
-        // Get a reference to Firestore
-        let db = Firestore.firestore()
-        
         do {
-            // Delete user data from Firestore
-            try await db.collection("users").document(user.uid).delete()
-            
-            // Delete the user account from Firebase Auth
-            try await user.delete()
-            
-            // Clear local user session
+            try await authService.deleteAccount()
             self.userSession = nil
-            self.currentUser = nil
-            
         } catch {
             print("DEBUG: Failed to delete account with error: \(error.localizedDescription)")
             throw error
         }
     }
     
-    func fetchUser() async {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
-        guard let snapshot = try? await Firestore.firestore().collection("users").document(uid).getDocument() else { return }
-        self.currentUser = try? snapshot.data(as: User.self)
-        
-        // Notify UserService about user change
-        if let user = self.currentUser {
-            NotificationCenter.default.post(name: Notification.Name("userSessionChanged"), object: user)
-        }
-        
-        print("Debug: Current user is \(self.currentUser?.email ?? "No user")")
-    }
-    
-    // Helper method to provide a simulated user for testing
+    /// Set up test user
     func setupTestUser() {
-        // Set a mock user when running in simulator/debug mode
-        #if DEBUG
-        if self.currentUser == nil {
-            self.currentUser = User.MOCK_USER
-            NotificationCenter.default.post(name: Notification.Name("userSessionChanged"), object: User.MOCK_USER)
-        }
-        #endif
+        authService.setupTestUser()
     }
 }

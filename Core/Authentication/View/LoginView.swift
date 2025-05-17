@@ -13,8 +13,26 @@ struct LoginView: View {
     @State private var showPassword = false
     @State private var showStatusSheet = false
     @State private var loginError: Error?
+    @State private var errorMessage: String = ""
     @EnvironmentObject var viewModel: AuthViewModel
     @AppStorage("isDarkMode") private var isDarkMode = false
+    
+    // Helper function to get user-friendly error message
+    private func getUserFriendlyErrorMessage(from error: Error) -> String {
+        let errorMessage = error.localizedDescription.lowercased()
+        
+        if errorMessage.contains("no user record") || errorMessage.contains("wrong password") {
+            return "И-мэйл эсвэл нууц үг буруу байна."
+        } else if errorMessage.contains("network error") {
+            return "Интернэт холболтоо шалгана уу."
+        } else if errorMessage.contains("too many attempts") {
+            return "Хэт олон удаа оролдлоо. Түр хүлээнэ үү."
+        } else if errorMessage.contains("invalid email") {
+            return "И-мэйл хаяг буруу байна."
+        }
+        
+        return error.localizedDescription
+    }
     
     var body: some View {
         NavigationStack {
@@ -42,9 +60,9 @@ struct LoginView: View {
                 VStack(spacing: 20) {
                     // Email Field
                     VStack(alignment: .leading, spacing: 8) {
-//                        Text("И-мейл")
-//                            .foregroundColor(.gray)
-//                            .font(.callout)
+                        Text("И-мейл")
+                            .foregroundColor(.gray)
+                            .font(.callout)
                         
                         HStack {
                             Image(systemName: "envelope.fill")
@@ -52,6 +70,7 @@ struct LoginView: View {
                             TextField("И-мэйл", text: $email)
                                 .textInputAutocapitalization(.never)
                                 .keyboardType(.emailAddress)
+                                .autocorrectionDisabled()
                         }
                         .padding()
                         .background(Color(.secondarySystemBackground))
@@ -60,9 +79,9 @@ struct LoginView: View {
                     
                     // Password Field
                     VStack(alignment: .leading, spacing: 8) {
-//                        Text("Нууц үг")
-//                            .foregroundColor(.gray)
-//                            .font(.callout)
+                        Text("Нууц үг")
+                            .foregroundColor(.gray)
+                            .font(.callout)
                         
                         HStack {
                             Image(systemName: "lock.fill")
@@ -85,6 +104,15 @@ struct LoginView: View {
                         .cornerRadius(12)
                     }
                     
+                    // Error message
+                    if !errorMessage.isEmpty {
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .padding(.top, -10)
+                            .transition(.opacity)
+                    }
+                    
                     NavigationLink {
                         ForgotPasswordView()
                     } label: {
@@ -101,9 +129,11 @@ struct LoginView: View {
                 Button {
                     Task {
                         do {
+                            errorMessage = "" // Clear previous errors
                             try await viewModel.signIn(withEmail: email, password: password)
                         } catch {
                             loginError = error
+                            errorMessage = getUserFriendlyErrorMessage(from: error)
                             showStatusSheet = true
                         }
                     }
@@ -126,8 +156,8 @@ struct LoginView: View {
                 .statusSheet(
                     isPresented: $showStatusSheet,
                     isSuccess: false,
-                    title: "Login Failed",
-                    message: loginError?.localizedDescription ?? "An unknown error occurred",
+                    title: "Нэвтрэхэд алдаа гарлаа",
+                    message: loginError != nil ? getUserFriendlyErrorMessage(from: loginError!) : "Тодорхойгүй алдаа гарлаа. Дахин оролдоно уу.",
                     action: nil
                 )
                 

@@ -26,10 +26,10 @@ struct Meal: Identifiable, Codable, Equatable {
 }
 
 enum MealType: String, Codable, CaseIterable, Identifiable {
-    case breakfast = "Breakfast"
-    case lunch = "Lunch" 
-    case dinner = "Dinner"
-    case snack = "Snack"
+    case breakfast = "Өглөөний цай"
+    case lunch = "Өдрийн хоол"
+    case dinner = "Оройн хоол"
+    case snack = "Хөнгөн зууш"
     
     var id: String { self.rawValue }
     

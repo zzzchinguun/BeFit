@@ -3,34 +3,48 @@
 //  BeFit
 //
 //  Created by Chinguun Khongor on 3/14/25.
+//  Updated by AI Assistant on 5/8/25 for MVVM architecture
 //
 
 import SwiftUI
 
 struct ProfileView: View {
-    @EnvironmentObject var viewModel: AuthViewModel
-    @State private var selectedTab = 0
-    @State private var navigationPath = NavigationPath()
-    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
-    @AppStorage("isDarkMode") private var isDarkMode = false
-    @State private var showDeleteConfirmation = false
+    // MARK: - View Model
+    
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @StateObject private var viewModel = ViewModelFactory.createProfileViewModel()
+    @StateObject private var weightLogViewModel = ViewModelFactory.createWeightLogViewModel()
+    @State private var showWeightLogSheet = false
+    
+    // MARK: - Body
     
     var body: some View {
-        if let user = viewModel.currentUser {
-            NavigationStack(path: $navigationPath) {
+        if let user = authViewModel.currentUser {
+            NavigationStack(path: $viewModel.navigationPath) {
                 VStack(spacing: 0) {
-                    if hasCompletedOnboarding {
+                    if viewModel.needsOnboarding {
                         Button {
-                            navigationPath.append("onboarding")
+                            viewModel.startOnboarding()
                         } label: {
                             AnimatedPreferencesButton {
-                                navigationPath.append("onboarding")
+                                viewModel.startOnboarding()
                             }
                         }
                         .padding()
                     }
                     
-                    TabView(selection: $selectedTab) {
+                    if !weightLogViewModel.hasLoggedWeightToday {
+                        Button {
+                            showWeightLogSheet = true
+                        } label: {
+                            WeightLogButton {
+                                showWeightLogSheet = true
+                            }
+                        }
+                        .padding()
+                    }
+                    
+                    TabView(selection: $viewModel.selectedTab) {
                         profileDetailView(user: user)
                             .tag(0)
                         
@@ -48,40 +62,44 @@ struct ProfileView: View {
                     customTabBar
                 }
                 .navigationBarTitleDisplayMode(.inline)
-                .background(isDarkMode ? Color.black : Color(.systemGroupedBackground))
-                .preferredColorScheme(isDarkMode ? .dark : .light)
+                .background(viewModel.isDarkMode ? Color.black : Color(.systemGroupedBackground))
+                .preferredColorScheme(viewModel.isDarkMode ? .dark : .light)
                 .navigationDestination(for: String.self) { route in
                     if route == "onboarding" {
                         OnboardingView()
-                            .environmentObject(viewModel)
+                            .environmentObject(authViewModel)
                             .navigationBarBackButtonHidden()
                     }
                 }
             }
             .onAppear {
-                if hasCompletedOnboarding {
-                    navigationPath.append("onboarding")
-                }
+                viewModel.checkOnboardingNeeded()
+                weightLogViewModel.fetchWeightLogs()
+            }
+            .sheet(isPresented: $showWeightLogSheet) {
+                WeightLogSheet(viewModel: weightLogViewModel)
             }
         }
     }
+    
+    // MARK: - Tab Bar
     
     private var customTabBar: some View {
         HStack(spacing: 0) {
             ForEach(0..<4) { index in
                 Button(action: {
                     withAnimation {
-                        selectedTab = index
+                        viewModel.selectTab(index)
                     }
                 }) {
                     VStack(spacing: 4) {
-                        Image(systemName: tabIcon(for: index))
+                        Image(systemName: viewModel.tabIcon(for: index))
                             .font(.system(size: 24))
-                        Text(tabTitle(for: index))
+                        Text(viewModel.tabTitle(for: index))
                             .font(.caption)
-                            .fontWeight(selectedTab == index ? .bold : .regular)
+                            .fontWeight(viewModel.selectedTab == index ? .bold : .regular)
                     }
-                    .foregroundColor(selectedTab == index ? .blue : .gray)
+                    .foregroundColor(viewModel.selectedTab == index ? .blue : .gray)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
                 }
@@ -90,25 +108,7 @@ struct ProfileView: View {
         .background(.thinMaterial)
     }
     
-    private func tabIcon(for index: Int) -> String {
-        switch index {
-        case 0: return "person.circle.fill"
-        case 1: return "chart.bar.fill"
-        case 2: return "dumbbell.fill"
-        case 3: return "arrow.up.right.circle.fill"
-        default: return ""
-        }
-    }
-    
-    private func tabTitle(for index: Int) -> String {
-        switch index {
-        case 0: return "Profile"
-        case 1: return "Dashboard"
-        case 2: return "Exercises"
-        case 3: return "Progress"
-        default: return ""
-        }
-    }
+    // MARK: - Dashboard View
     
     private func dashboardView(user: User) -> some View {
         ScrollView{
@@ -136,6 +136,8 @@ struct ProfileView: View {
         }
     }
     
+    // MARK: - Metric Card
+    
     private func metricCard(title: String, value: String, icon: String) -> some View {
         VStack(spacing: 10) {
             Image(systemName: icon)
@@ -155,6 +157,8 @@ struct ProfileView: View {
         .background(Color(.secondarySystemBackground))
         .cornerRadius(15)
     }
+    
+    // MARK: - Profile Detail View
     
     private func profileDetailView(user: User) -> some View {
         List {
@@ -184,11 +188,11 @@ struct ProfileView: View {
             }
             
             Section {
-                Toggle(isOn: $isDarkMode) {
+                Toggle(isOn: $viewModel.isDarkMode) {
                     SettingsRowView(
-                        imageName: isDarkMode ? "moon.fill" : "sun.max.fill",
+                        imageName: viewModel.isDarkMode ? "moon.fill" : "sun.max.fill",
                         title: "Шөнийн горим",
-                        tintColor: isDarkMode ? .purple : .orange,
+                        tintColor: viewModel.isDarkMode ? .purple : .orange,
                         isDeleteButton: false
                     )
                 }
@@ -204,7 +208,7 @@ struct ProfileView: View {
                     )
                     Spacer()
                     
-                    Text("1.1.25")
+                    Text("1.2.11")
                         .font(.subheadline)
                         .foregroundColor(.gray)
                 }
@@ -213,7 +217,7 @@ struct ProfileView: View {
             Section("Бүртгэл") {
                 Button {
                     Task {
-                        viewModel.signOut()
+                        authViewModel.signOut()
                     }
                 } label: {
                     SettingsRowView(
@@ -225,7 +229,7 @@ struct ProfileView: View {
                 }
                 
                 Button {
-                    showDeleteConfirmation = true
+                    viewModel.showDeleteAccountConfirmation()
                 } label: {
                     SettingsRowView(
                         imageName: "minus.circle.fill",
@@ -235,11 +239,11 @@ struct ProfileView: View {
                     )
                     
                 }
-                .alert("Бүртгэл устгах", isPresented: $showDeleteConfirmation) {
+                .alert("Бүртгэл устгах", isPresented: $viewModel.showDeleteConfirmation) {
                     Button("Cancel", role: .cancel) { }
                     Button("Delete", role: .destructive) {
                         Task {
-                            try? await viewModel.deleteAccount()
+                            try? await authViewModel.deleteAccount()
                         }
                     }
                 } message: {
@@ -250,20 +254,22 @@ struct ProfileView: View {
         .listStyle(InsetGroupedListStyle())
     }
     
+    // MARK: - Progress View
+    
     private var progressView: some View {
-        VStack(spacing: 20) {
+        VStack {
             Text("Progress")
                 .font(.title)
                 .fontWeight(.bold)
+                .padding(.top)
             
-            RoundedRectangle(cornerRadius: 15)
-                .fill(Color.blue.opacity(0.1))
-                .frame(height: 200)
-                .overlay(
-                    Text("Progress Chart Coming Soon")
-                        .foregroundColor(.blue)
-                )
-                .padding()
+            Spacer()
+            
+            Text("Coming soon!")
+                .font(.headline)
+                .foregroundColor(.gray)
+            
+            Spacer()
         }
     }
 }

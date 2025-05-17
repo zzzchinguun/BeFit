@@ -1,32 +1,33 @@
 import SwiftUI
-struct AnimatedPreferencesButton: View {
+
+struct WeightLogButton: View {
     @State private var glowAmount = 0.5
     @State private var gradientRotation = 0.0
-    @State private var bounce = false // Controls bounce animation
+    @State private var bounce = false
     let action: () -> Void
     
     var body: some View {
         Button(action: action) {
             HStack(spacing: 12) {
-                Image(systemName: "figure.walk")
+                Image(systemName: "scalemass.fill")
                     .font(.title2)
-                    .foregroundColor(.blue)
-                    .offset(y: bounce ? -2 : 0) // Subtle bounce effect
-                    .scaleEffect(bounce ? 1.05 : 1.0) // Minor scaling
+                    .foregroundColor(.green)
+                    .offset(y: bounce ? -2 : 0)
+                    .scaleEffect(bounce ? 1.05 : 1.0)
                     .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: bounce)
                 
-                Text("Биеийн үзүүлэлт тодорхойлох")
+                Text("Өнөөдрийн жингээ бүртгэх")
                     .fontWeight(.medium)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
             .background(
                 ZStack {
-                    Color.blue.opacity(0.1)
+                    Color.green.opacity(0.1)
                     
                     // Glowing effect
                     Circle()
-                        .fill(Color.blue)
+                        .fill(Color.green)
                         .blur(radius: 20)
                         .opacity(glowAmount)
                         .scaleEffect(1.2)
@@ -37,10 +38,10 @@ struct AnimatedPreferencesButton: View {
                     .stroke(
                         AngularGradient(
                             gradient: Gradient(colors: [
-                                .blue.opacity(0.8),
-                                .purple.opacity(0.6),
-                                .blue.opacity(0.4),
-                                .blue.opacity(0.8)
+                                .green.opacity(0.8),
+                                .blue.opacity(0.6),
+                                .green.opacity(0.4),
+                                .green.opacity(0.8)
                             ]),
                             center: .center,
                             angle: .degrees(gradientRotation)
@@ -48,7 +49,7 @@ struct AnimatedPreferencesButton: View {
                         lineWidth: 2
                     )
             )
-            .foregroundColor(.blue)
+            .foregroundColor(.green)
             .clipShape(Capsule())
         }
         .onAppear {
@@ -59,14 +60,13 @@ struct AnimatedPreferencesButton: View {
                 gradientRotation = 360
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                bounce = true // Start bounce animation after a short delay
+                bounce = true
             }
         }
     }
 }
 
-
 #Preview {
-    AnimatedPreferencesButton(action: {})
+    WeightLogButton(action: {})
         .padding()
 }

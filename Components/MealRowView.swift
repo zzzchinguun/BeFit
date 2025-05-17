@@ -9,8 +9,10 @@ import SwiftUI
 
 struct MealRowView: View {
     let meal: Meal
+    @ObservedObject var viewModel: MealViewModel
     var onDelete: () -> Void = {}
     @State private var showDetails = false
+    @State private var showEditSheet = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -52,7 +54,7 @@ struct MealRowView: View {
                             .fontWeight(.bold)
                             .foregroundColor(.orange)
                         
-                        Text("calories")
+                        Text("Калори")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -66,28 +68,41 @@ struct MealRowView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(PlainButtonStyle())
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 0)
             .padding(.vertical, 12)
             
             // Expanded details
             if showDetails {
                 VStack(spacing: 16) {
                     Divider()
-                        .padding(.horizontal)
+                        
                     
                     // Macros details
                     HStack(spacing: 12) {
-                        MacroDetail(value: meal.protein, name: "Protein", color: .blue, icon: "p.circle.fill")
-                        MacroDetail(value: meal.carbs, name: "Carbs", color: .green, icon: "c.circle.fill")
-                        MacroDetail(value: meal.fat, name: "Fat", color: .red, icon: "f.circle.fill")
+                        MacroDetail(value: meal.protein, name: "Уураг", color: .blue, icon: "p.circle.fill")
+                        MacroDetail(value: meal.carbs, name: "Нүүрс ус", color: .green, icon: "c.circle.fill")
+                        MacroDetail(value: meal.fat, name: "Өөх тос", color: .red, icon: "f.circle.fill")
                     }
-                    .padding(.horizontal)
                     
                     HStack {
                         Spacer()
                         
+                        Button(action: {
+                            showEditSheet = true
+                        }) {
+                            Label("Засах", systemImage: "pencil")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                                .padding(.vertical, 6)
+                                .padding(.horizontal, 12)
+                                .background(Color.blue.opacity(0.1))
+                                .cornerRadius(8)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .padding(.trailing, 8)
+                        
                         Button(action: onDelete) {
-                            Label("Delete", systemImage: "trash")
+                            Label("Устгах", systemImage: "trash")
                                 .font(.caption)
                                 .foregroundColor(.red)
                                 .padding(.vertical, 6)
@@ -97,7 +112,6 @@ struct MealRowView: View {
                         }
                         .buttonStyle(PlainButtonStyle())
                     }
-                    .padding(.horizontal)
                     .padding(.bottom, 8)
                 }
                 .transition(.asymmetric(
@@ -105,6 +119,28 @@ struct MealRowView: View {
                     removal: .opacity.combined(with: .scale(scale: 0.95))
                 ))
             }
+        }
+        .sheet(isPresented: $showEditSheet) {
+            NavigationView {
+                MealEditView(meal: meal, onSave: { updatedMeal in
+                    Task {
+                        do {
+                            try await viewModel.updateMeal(updatedMeal)
+                        } catch {
+                            print("Error updating meal: \(error.localizedDescription)")
+                        }
+                    }
+                    showEditSheet = false
+                })
+                .navigationTitle("Хоол засах")
+                .navigationBarTitleDisplayMode(.inline)
+                .navigationBarItems(
+                    trailing: Button("Хаах") {
+                        showEditSheet = false
+                    }
+                )
+            }
+            .presentationDetents([.fraction(0.99), .medium, .large])
         }
     }
     
@@ -132,7 +168,7 @@ struct MacroDetail: View {
     
     var body: some View {
         VStack(spacing: 5) {
-            Text("\(value)g")
+            Text("\(value)г")
                 .font(.headline)
                 .foregroundColor(color)
             
@@ -152,7 +188,7 @@ struct MacroDetail: View {
 }
 
 #Preview {
-    MealRowView(meal: Meal.MOCK_MEALS[0])
+    MealRowView(meal: Meal.MOCK_MEALS[0], viewModel: MealViewModel())
         .padding()
         .previewLayout(.sizeThatFits)
 } 

@@ -91,16 +91,16 @@ struct ExercisesView: View {
                 }
                 .listStyle(PlainListStyle())
             }
-            .navigationTitle("Exercises")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showingAddCustomExercise = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                }
-            }
+//            .navigationTitle("Exercises")
+//            .toolbar {
+//                ToolbarItem(placement: .navigationBarTrailing) {
+//                    Button {
+//                        showingAddCustomExercise = true
+//                    } label: {
+//                        Image(systemName: "plus")
+//                    }
+//                }
+//            }
             .sheet(isPresented: $showingAddCustomExercise) {
                 AddCustomExerciseView(viewModel: viewModel)
             }

@@ -10,7 +10,7 @@ import SwiftUI
 struct AddMealView: View {
     @ObservedObject var viewModel: MealViewModel
     @Environment(\.dismiss) private var dismiss
-    
+    var onInputFocus: ()-> Void
     @State private var mealName = ""
     @State private var calories = ""
     @State private var protein = ""
@@ -31,128 +31,154 @@ struct AddMealView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text("Meal Details")) {
-                    TextField("Meal Name", text: $mealName)
+                Section(header: Text("Хоолны Дэлгэрэнгүй")) {
+                    TextField("Хоолны Нэр", text: $mealName)
                         .autocapitalization(.words)
-                    
-                    Picker("Meal Type", selection: $selectedMealType) {
+                        .simultaneousGesture(TapGesture().onEnded{
+                            onInputFocus()
+                        })
+                    Picker("Хоолны Төрөл", selection: $selectedMealType) {
                         ForEach(MealType.allCases) { type in
                             Label(type.rawValue, systemImage: type.icon)
                                 .tag(type)
                         }
+                    }
+                    .onTapGesture {
+                        onInputFocus()
                     }
                 }
                 
                 // Macros and weight section
                 Section(header: macroHeaderView()) {
                     HStack {
-                        Text("P")
+                        Text("У")
                             .fontWeight(.bold)
                             .foregroundColor(.blue)
-                            .frame(width: 24, height: 24)
-                        TextField("Protein (g)", text: $protein)
+                            .frame(width: 16, height: 24)
+                        TextField("Уураг (г)", text: $protein)
                             .keyboardType(.numberPad)
                             .onChange(of: protein) { _, _ in
                                 if isAutoCalculateEnabled {
                                     calculateCalories()
                                 }
                             }
+                            .onTapGesture {
+                                onInputFocus()
+                            }
                     }
                     
                     HStack {
-                        Text("C")
+                        Text("Н")
                             .fontWeight(.bold)
                             .foregroundColor(.green)
-                            .frame(width: 24, height: 24)
-                        TextField("Carbs (g)", text: $carbs)
+                            .frame(width: 16, height: 24)
+                        TextField("Нүүрс ус (г)", text: $carbs)
                             .keyboardType(.numberPad)
                             .onChange(of: carbs) { _, _ in
                                 if isAutoCalculateEnabled {
                                     calculateCalories()
                                 }
                             }
+                            .onTapGesture {
+                                onInputFocus()
+                            }
                     }
                     
                     HStack {
-                        Text("F")
+                        Text("Ө")
                             .fontWeight(.bold)
                             .foregroundColor(.red)
-                            .frame(width: 24, height: 24)
-                        TextField("Fat (g)", text: $fat)
+                            .frame(width: 16, height: 24)
+                        TextField("Өөх тос (г)", text: $fat)
                             .keyboardType(.numberPad)
                             .onChange(of: fat) { _, _ in
                                 if isAutoCalculateEnabled {
                                     calculateCalories()
                                 }
                             }
-                    }
-                    
-                    HStack {
-                        Image(systemName: "flame.fill")
-                            .foregroundColor(.orange)
-                        TextField("Calories", text: $calories)
-                            .keyboardType(.numberPad)
-                            .disabled(isAutoCalculateEnabled)
-                            .foregroundColor(isAutoCalculateEnabled ? .gray : .primary)
+                            .onTapGesture {
+                                onInputFocus()
+                            }
                     }
                     
                     HStack {
                         Image(systemName: "scalemass.fill")
                             .foregroundColor(.purple)
-                        TextField("Weight (g)", text: $weight)
+                            .frame(width: 16, height: 24)
+                        TextField("Жин (г)", text: $weight)
                             .keyboardType(.decimalPad)
+                            .onChange(of: weight) { _, _ in
+                                if isAutoCalculateEnabled {
+                                    calculateCalories()
+                                }
+                            }
+                            .onTapGesture {
+                                onInputFocus()
+                            }
                     }
+                    
+                    HStack {
+                        Image(systemName: "flame.fill")
+                            .foregroundColor(.orange)
+                            .frame(width: 16, height: 24)
+                        TextField("Калори", text: $calories)
+                            .keyboardType(.numberPad)
+                            .onTapGesture {
+                                onInputFocus()
+                            }
+                    }
+                    
+                    
                 }
                 
-                Section(header: Text("Preview")) {
+                Section(header: Text("Урьдчилан Харах")) {
                     mealPreviewCard()
                 }
-                
-                Section {
-                    Button {
-                        Task {
-                            await addMeal()
-                        }
-                    } label: {
-                        Text("Add Meal")
-                            .bold()
-                            .frame(maxWidth: .infinity)
-                            .foregroundColor(.white)
-                            .padding(.vertical, 10)
-                            .background(formIsValid ? Color.blue : Color.gray)
-                            .cornerRadius(10)
-                    }
-                    .disabled(!formIsValid)
-                }
             }
-            .navigationTitle("Add Meal")
+            Button {
+                Task {
+                    await addMeal()
+                }
+            } label: {
+                Text("Хоол Нэмэх")
+                    .bold()
+                    .frame(maxWidth: .infinity)
+                    .foregroundColor(.white)
+                    .padding(.vertical, 10)
+                    .background(formIsValid ? Color.blue : Color.gray)
+                    .cornerRadius(10)
+                    .padding(.bottom, 10)
+                    .padding(.horizontal, 20)
+            }
+            .disabled(!formIsValid)
+            .navigationTitle("Хоол Нэмэх")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Цуцлах") {
                         dismiss()
                     }
                 }
             }
-            .statusSheet(isPresented: $showingStatusSheet, isSuccess: !isError, title: isError ? "Error" : "Success", message: statusMessage)
+            .statusSheet(isPresented: $showingStatusSheet, isSuccess: !isError, title: isError ? "Алдаа" : "Амжилттай", message: statusMessage)
         }
     }
     
     private func macroHeaderView() -> some View {
         HStack {
-            Text("Nutrition")
+            Text("Тэжээллэг чанар")
             
             Spacer()
             
-            Toggle("Auto", isOn: $isAutoCalculateEnabled)
-                .labelsHidden()
-                .toggleStyle(SwitchToggleStyle(tint: .blue))
-                .scaleEffect(0.8)
-                .onChange(of: isAutoCalculateEnabled) { _, _ in
-                    if isAutoCalculateEnabled {
-                        calculateCalories()
-                    }
-                }
+            //            Toggle("Авто", isOn: $isAutoCalculateEnabled)
+            //                .labelsHidden()
+            //                .toggleStyle(SwitchToggleStyle(tint: .blue))
+            //                .scaleEffect(0.8)
+            //                .onChange(of: isAutoCalculateEnabled) { _, _ in
+            //                    if isAutoCalculateEnabled {
+            //                        calculateCalories()
+            //                    }
+            //                }
         }
     }
     
@@ -167,7 +193,7 @@ struct AddMealView: View {
                     .clipShape(Circle())
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(mealName.isEmpty ? "Meal Name" : mealName)
+                    Text(mealName.isEmpty ? "Хоолны Нэр" : mealName)
                         .font(.headline)
                         .foregroundColor(mealName.isEmpty ? .gray : .primary)
                     
@@ -179,7 +205,7 @@ struct AddMealView: View {
                 Spacer()
                 
                 VStack(alignment: .trailing) {
-                    Text("\(calories.isEmpty ? "0" : calories) kcal")
+                    Text("\(calories.isEmpty ? "0" : calories) ккал")
                         .font(.title3)
                         .fontWeight(.semibold)
                         .foregroundColor(.orange)
@@ -187,18 +213,20 @@ struct AddMealView: View {
             }
             
             HStack(spacing: 12) {
-                MacroCircle(value: protein.isEmpty ? "0" : protein, label: "P", color: .blue)
-                MacroCircle(value: carbs.isEmpty ? "0" : carbs, label: "C", color: .green)
-                MacroCircle(value: fat.isEmpty ? "0" : fat, label: "F", color: .red)
+                MacroCircle(value: protein.isEmpty ? "0" : protein, label: "У", color: .blue)
+                Spacer()
+                MacroCircle(value: carbs.isEmpty ? "0" : carbs, label: "Н", color: .green)
+                Spacer()
+                MacroCircle(value: fat.isEmpty ? "0" : fat, label: "Ө", color: .red)
             }
             
             if !weight.isEmpty {
-                Text("Weight: \(weight)g")
+                Text("Жин: \(weight)г")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
         }
-        .padding()
+        
         .background(Color(.secondarySystemBackground))
         .cornerRadius(12)
     }
@@ -213,16 +241,17 @@ struct AddMealView: View {
     }
     
     private func calculateCalories() {
-        guard let proteinValue = Int(protein), 
+        guard let weight = Int(weight),
+              let proteinValue = Int(protein),
               let carbsValue = Int(carbs),
               let fatValue = Int(fat) else {
             calories = ""
             return
         }
         
-        let calculatedCalories = (proteinValue * proteinCaloriesPerGram) +
-                                (carbsValue * carbsCaloriesPerGram) +
-                                (fatValue * fatCaloriesPerGram)
+        let calculatedCalories = weight/100 * ((proteinValue * proteinCaloriesPerGram) +
+                                               (carbsValue * carbsCaloriesPerGram) +
+                                               (fatValue * fatCaloriesPerGram))
         
         calories = "\(calculatedCalories)"
     }
@@ -232,7 +261,7 @@ struct AddMealView: View {
               let proteinInt = Int(protein),
               let carbsInt = Int(carbs),
               let fatInt = Int(fat) else {
-            statusMessage = "Please enter valid numeric values"
+            statusMessage = "Зөв тоон утга оруулна уу"
             isError = true
             showingStatusSheet = true
             return
@@ -252,7 +281,7 @@ struct AddMealView: View {
                 weight: weightValue
             )
             
-            statusMessage = "Meal added successfully"
+            statusMessage = "Хоол амжилттай нэмэгдлээ"
             isError = false
             showingStatusSheet = true
             
@@ -261,7 +290,7 @@ struct AddMealView: View {
                 dismiss()
             }
         } catch {
-            statusMessage = "Failed to add meal: \(error.localizedDescription)"
+            statusMessage = "Хоол нэмэхэд алдаа гарлаа: \(error.localizedDescription)"
             isError = true
             showingStatusSheet = true
         }
@@ -269,10 +298,10 @@ struct AddMealView: View {
     
     private var formIsValid: Bool {
         return !mealName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-              !calories.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-              !protein.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-              !carbs.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-              !fat.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !calories.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !protein.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !carbs.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !fat.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 }
 
@@ -291,7 +320,7 @@ struct MacroCircle: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
             
-            Text("g")
+            Text("г")
                 .font(.caption2)
                 .foregroundColor(.secondary)
         }
@@ -302,5 +331,5 @@ struct MacroCircle: View {
 }
 
 #Preview {
-    AddMealView(viewModel: MealViewModel())
-} 
+    AddMealView(viewModel: MealViewModel(), onInputFocus: {})
+}

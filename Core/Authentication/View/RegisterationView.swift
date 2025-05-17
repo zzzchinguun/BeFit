@@ -17,7 +17,12 @@ struct RegisterationView: View {
     @State private var showConfirmPassword = false
     @State private var showStatusSheet = false
     @State private var registrationError: Error?
+    @State private var errorMessage: String = ""
+    @State private var isShowingPassword = false
     @State private var keyboardHeight: CGFloat = 0
+    @State private var showEmailError = false
+    @State private var showPasswordError = false
+    @State private var showConfirmPasswordError = false
     @FocusState private var focusedField: Field?
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var viewModel: AuthViewModel
@@ -25,6 +30,23 @@ struct RegisterationView: View {
     
     enum Field {
         case email, lastName, firstName, password, confirmPassword
+    }
+    
+    // Helper function to get user-friendly error message
+    private func getUserFriendlyErrorMessage(from error: Error) -> String {
+        let errorMessage = error.localizedDescription.lowercased()
+        
+        if errorMessage.contains("email already in use") {
+            return "Энэ и-мэйл хаяг бүртгэлтэй байна."
+        } else if errorMessage.contains("network error") {
+            return "Интернэт холболтоо шалгана уу."
+        } else if errorMessage.contains("weak password") {
+            return "Нууц үг хангалттай хүчтэй биш байна. 6+ тэмдэгт, тоо, үсэг хольж оруулна уу."
+        } else if errorMessage.contains("invalid email") {
+            return "И-мэйл хаяг буруу байна."
+        }
+        
+        return error.localizedDescription
     }
     
     var body: some View {
@@ -52,30 +74,77 @@ struct RegisterationView: View {
                 // Form Fields
                 VStack(spacing: 20) {
                     // Email Field
-                    FormField(title: "И-мейл",
-                             placeholder: "И-мэйл хаягаа оруулах",
-                             text: $email,
-                             icon: "envelope.fill")
-                        .textInputAutocapitalization(.never)
-                        .keyboardType(.emailAddress)
-                        .focused($focusedField, equals: .email)
-                        .submitLabel(.next)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("И-мейл")
+                            .foregroundColor(.gray)
+                            .font(.callout)
+                        
+                        HStack {
+                            Image(systemName: "envelope.fill")
+                                .foregroundColor(.blue)
+                            TextField("И-мэйл хаягаа оруулах", text: $email)
+                                .textInputAutocapitalization(.never)
+                                .keyboardType(.emailAddress)
+                                .autocorrectionDisabled()
+                                .focused($focusedField, equals: .email)
+                                .submitLabel(.next)
+                                .onChange(of: email) { oldValue, newValue in
+                                    showEmailError = !newValue.isEmpty && !newValue.contains("@")
+                                }
+                        }
+                        .padding()
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(showEmailError ? Color.red : Color.clear, lineWidth: 1)
+                        )
+                        
+                        if showEmailError {
+                            Text("Зөв и-мэйл хаяг оруулна уу")
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        }
+                    }
                     
-                    // Last Name Field
-                    FormField(title: "Овог",
-                             placeholder: "Таны овог",
-                             text: $lastName,
-                             icon: "person.fill")
-                        .focused($focusedField, equals: .lastName)
-                        .submitLabel(.next)
-                    
-                    // First Name Field
-                    FormField(title: "Нэр",
-                             placeholder: "Таны нэр",
-                             text: $firstName,
-                             icon: "person.fill")
-                        .focused($focusedField, equals: .firstName)
-                        .submitLabel(.next)
+                    // Name Fields in HStack for better layout
+                    HStack(spacing: 15) {
+                        // Last Name Field
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Овог")
+                                .foregroundColor(.gray)
+                                .font(.callout)
+                            
+                            HStack {
+                                Image(systemName: "person.fill")
+                                    .foregroundColor(.blue)
+                                TextField("Таны овог", text: $lastName)
+                                    .focused($focusedField, equals: .lastName)
+                                    .submitLabel(.next)
+                            }
+                            .padding()
+                            .background(Color(.secondarySystemBackground))
+                            .cornerRadius(12)
+                        }
+                        
+                        // First Name Field
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Нэр")
+                                .foregroundColor(.gray)
+                                .font(.callout)
+                            
+                            HStack {
+                                Image(systemName: "person.fill")
+                                    .foregroundColor(.blue)
+                                TextField("Таны нэр", text: $firstName)
+                                    .focused($focusedField, equals: .firstName)
+                                    .submitLabel(.next)
+                            }
+                            .padding()
+                            .background(Color(.secondarySystemBackground))
+                            .cornerRadius(12)
+                        }
+                    }
                     
                     // Password Field
                     VStack(alignment: .leading, spacing: 8) {
@@ -95,6 +164,9 @@ struct RegisterationView: View {
                             }
                             .focused($focusedField, equals: .password)
                             .submitLabel(.next)
+                            .onChange(of: password) { oldValue, newValue in
+                                showPasswordError = !newValue.isEmpty && newValue.count < 6
+                            }
                             
                             Button(action: { showPassword.toggle() }) {
                                 Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
@@ -104,6 +176,29 @@ struct RegisterationView: View {
                         .padding()
                         .background(Color(.secondarySystemBackground))
                         .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(showPasswordError ? Color.red : Color.clear, lineWidth: 1)
+                        )
+                        
+                        if showPasswordError {
+                            Text("Нууц үг 6-с дээш тэмдэгттэй байх ёстой")
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        }
+                        
+                        // Password strength indicator
+                        if !password.isEmpty {
+                            HStack(spacing: 5) {
+                                ForEach(0..<3) { index in
+                                    Rectangle()
+                                        .fill(passwordStrength > index ? (passwordStrength > 1 ? Color.green : Color.orange) : Color.gray.opacity(0.3))
+                                        .frame(height: 4)
+                                        .cornerRadius(2)
+                                }
+                            }
+                            .padding(.top, 5)
+                        }
                     }
                     
                     // Confirm Password Field
@@ -139,6 +234,15 @@ struct RegisterationView: View {
                         .background(Color(.secondarySystemBackground))
                         .cornerRadius(12)
                     }
+                    
+                    // Error message
+                    if !errorMessage.isEmpty {
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .padding(.top, 5)
+                            .transition(.opacity)
+                    }
                 }
                 .padding(.horizontal)
                 
@@ -146,6 +250,7 @@ struct RegisterationView: View {
                 Button {
                     Task {
                         do {
+                            errorMessage = "" // Clear previous errors
                             try await viewModel.createUser(
                                 withEmail: email,
                                 password: password,
@@ -155,6 +260,7 @@ struct RegisterationView: View {
                             showStatusSheet = true
                         } catch {
                             registrationError = error
+                            errorMessage = getUserFriendlyErrorMessage(from: error)
                             showStatusSheet = true
                         }
                     }
@@ -195,10 +301,10 @@ struct RegisterationView: View {
         .statusSheet(
             isPresented: $showStatusSheet,
             isSuccess: registrationError == nil,
-            title: registrationError == nil ? "Welcome!" : "Registration Failed",
+            title: registrationError == nil ? "Амжилттай!" : "Бүртгэл үүсгэхэд алдаа гарлаа",
             message: registrationError == nil ?
-                "Your account has been successfully created. Start your fitness journey now!" :
-                registrationError?.localizedDescription ?? "An unknown error occurred",
+                "Таны бүртгэл амжилттай үүслээ! Фитнесс аяллыг эхлүүлцгээе!" :
+                getUserFriendlyErrorMessage(from: registrationError!),
             action: {
                 if registrationError == nil {
                     dismiss()
@@ -241,6 +347,31 @@ struct RegisterationView: View {
             }
         }
         .preferredColorScheme(isDarkMode ? .dark : .light)
+    }
+    
+    // Password strength calculation
+    private var passwordStrength: Int {
+        var strength = 0
+        
+        if password.count >= 6 {
+            strength += 1
+        }
+        
+        // Check for mixed characters (numbers, special chars, etc.)
+        let hasNumbers = password.rangeOfCharacter(from: .decimalDigits) != nil
+        let hasSpecialChars = password.rangeOfCharacter(from: .punctuationCharacters) != nil
+        let hasLetters = password.rangeOfCharacter(from: .letters) != nil
+        
+        if (hasNumbers && hasLetters) || (hasSpecialChars && hasLetters) || (hasNumbers && hasSpecialChars) {
+            strength += 1
+        }
+        
+        // Longer passwords are stronger
+        if password.count >= 10 {
+            strength += 1
+        }
+        
+        return strength
     }
 }
 
