@@ -28,18 +28,18 @@ struct LogWorkoutView: View {
     var body: some View {
         NavigationStack {
             formContent
-                .navigationTitle("Log Workout")
+                .navigationTitle("Дасгал бичих")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
-                        Button("Cancel") {
+                        Button("Цуцлах") {
                             dismiss()
                         }
                     }
                 }
                 .alert(alertMessage, isPresented: $showingAlert) {
                     Button("OK") {
-                        if alertMessage.contains("successfully") {
+                        if alertMessage.contains("амжилттай") {
                             dismiss()
                         }
                     }
@@ -58,7 +58,7 @@ struct LogWorkoutView: View {
     }
     
     private var exerciseSection: some View {
-        Section(header: Text("Exercise")) {
+        Section(header: Text("Дасгал")) {
             HStack {
                 Text(exercise.name)
                     .font(.headline)
@@ -73,7 +73,7 @@ struct LogWorkoutView: View {
     }
     
     private var setsSection: some View {
-        Section(header: Text("Sets")) {
+        Section(header: Text("Сетүүд")) {
             ForEach(sets.indices, id: \.self) { index in
                 setRow(for: index)
             }
@@ -84,7 +84,7 @@ struct LogWorkoutView: View {
     
     private func setRow(for index: Int) -> some View {
         HStack {
-            Text("Set \(index + 1)")
+            Text("Сет \(index + 1)")
                 .font(.headline)
                 .frame(width: 60, alignment: .leading)
             
@@ -92,12 +92,12 @@ struct LogWorkoutView: View {
                 .frame(height: 20)
             
             HStack(spacing: 4) {
-                TextField("Reps", value: $sets[index].reps, format: .number)
+                TextField("Давт", value: $sets[index].reps, format: .number)
                     .keyboardType(.numberPad)
                     .multilineTextAlignment(.center)
                     .frame(width: 60)
                 
-                Text("reps")
+                Text("давт")
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }
@@ -105,12 +105,12 @@ struct LogWorkoutView: View {
             Spacer()
             
             HStack(spacing: 4) {
-                TextField("Weight", value: $sets[index].weight, format: .number)
+                TextField("Жин", value: $sets[index].weight, format: .number)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.center)
                     .frame(width: 60)
                 
-                Text("kg")
+                Text("кг")
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }
@@ -140,13 +140,13 @@ struct LogWorkoutView: View {
         }) {
             HStack {
                 Image(systemName: "plus.circle.fill")
-                Text("Add Set")
+                Text("Сет нэмэх")
             }
         }
     }
     
     private var notesSection: some View {
-        Section(header: Text("Notes (Optional)")) {
+        Section(header: Text("Тэмдэглэл (заавал биш)")) {
             TextEditor(text: $notes)
                 .frame(minHeight: 100)
         }
@@ -159,7 +159,7 @@ struct LogWorkoutView: View {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle())
                 } else {
-                    Text("Save Workout")
+                    Text("Дасгал хадгалах")
                         .fontWeight(.bold)
                         .frame(maxWidth: .infinity, alignment: .center)
                 }
@@ -175,7 +175,7 @@ struct LogWorkoutView: View {
     
     private func saveWorkout() {
         guard isValidWorkout() else {
-            alertMessage = "Please enter at least one valid set with reps and weight."
+            alertMessage = "Дор хаяж нэг сет зөв давталт болон жинтэй бичнэ үү."
             showingAlert = true
             return
         }
@@ -202,9 +202,9 @@ struct LogWorkoutView: View {
             isLogging = false
             
             if success {
-                alertMessage = "Workout logged successfully!"
+                alertMessage = "Дасгал амжилттай бүртгэгдлээ!"
             } else {
-                alertMessage = "Failed to log workout. Please try again."
+                alertMessage = "Дасгал бүртгэхэд алдаа гарлаа. Дахин оролдоно уу."
             }
             
             showingAlert = true

@@ -20,7 +20,7 @@ struct ExercisesView: View {
                 // Category picker
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
-                        CategoryPill(title: "All", isSelected: viewModel.selectedCategory == nil) {
+                        CategoryPill(title: "Бүгд", isSelected: viewModel.selectedCategory == nil) {
                             viewModel.selectedCategory = nil
                             viewModel.filterExercises()
                         }
@@ -42,7 +42,7 @@ struct ExercisesView: View {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.gray)
                     
-                    TextField("Search exercises", text: $searchText)
+                    TextField("Дасгал хайх", text: $searchText)
                         .onChange(of: searchText) { _ in
                             viewModel.searchText = searchText
                             viewModel.filterExercises()
@@ -72,7 +72,7 @@ struct ExercisesView: View {
                                 Spacer()
                                 
                                 if exercise.isCustom {
-                                    Text("Custom")
+                                    Text("Өөрийн")
                                         .font(.caption)
                                         .foregroundColor(.gray)
                                         .padding(.horizontal, 8)
@@ -91,7 +91,7 @@ struct ExercisesView: View {
                 }
                 .listStyle(PlainListStyle())
             }
-//            .navigationTitle("Exercises")
+//            .navigationTitle("Дасгалууд")
 //            .toolbar {
 //                ToolbarItem(placement: .navigationBarTrailing) {
 //                    Button {

@@ -21,10 +21,10 @@ struct AddCustomExerciseView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text("Exercise Details")) {
-                    TextField("Exercise Name", text: $exerciseName)
+                Section(header: Text("Дасгалын дэлгэрэнгүй")) {
+                    TextField("Дасгалын нэр", text: $exerciseName)
                     
-                    Picker("Category", selection: $selectedCategory) {
+                    Picker("Ангилал", selection: $selectedCategory) {
                         ForEach(ExerciseCategory.allCases.filter { $0 != .custom }) { category in
                             Text(category.rawValue).tag(category)
                         }
@@ -37,7 +37,7 @@ struct AddCustomExerciseView: View {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle())
                         } else {
-                            Text("Save Exercise")
+                            Text("Дасгал хадгалах")
                                 .fontWeight(.bold)
                                 .frame(maxWidth: .infinity, alignment: .center)
                         }
@@ -45,18 +45,18 @@ struct AddCustomExerciseView: View {
                     .disabled(isSaving || exerciseName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
-            .navigationTitle("Add Custom Exercise")
+            .navigationTitle("Өөрийн дасгал нэмэх")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                    Button("Цуцлах") {
                         dismiss()
                     }
                 }
             }
             .alert(alertMessage, isPresented: $showingAlert) {
                 Button("OK") {
-                    if alertMessage.contains("successfully") {
+                    if alertMessage.contains("амжилттай") {
                         dismiss()
                     }
                 }
@@ -69,14 +69,14 @@ struct AddCustomExerciseView: View {
         let trimmedName = exerciseName.trimmingCharacters(in: .whitespacesAndNewlines)
         
         guard !trimmedName.isEmpty else {
-            alertMessage = "Please enter a valid exercise name."
+            alertMessage = "Дасгалын зөв нэр оруулна уу."
             showingAlert = true
             return
         }
         
         // Check for duplicate name
         if viewModel.exercises.contains(where: { $0.name.lowercased() == trimmedName.lowercased() }) {
-            alertMessage = "An exercise with this name already exists."
+            alertMessage = "Ийм нэртэй дасгал өмнө бүртгэгдсэн байна."
             showingAlert = true
             return
         }
@@ -87,9 +87,9 @@ struct AddCustomExerciseView: View {
             isSaving = false
             
             if success {
-                alertMessage = "Exercise added successfully!"
+                alertMessage = "Дасгал амжилттай нэмэгдлээ!"
             } else {
-                alertMessage = "Failed to add exercise. Please try again."
+                alertMessage = "Дасгал нэмэхэд алдаа гарлаа. Дахин оролдоно уу."
             }
             
             showingAlert = true

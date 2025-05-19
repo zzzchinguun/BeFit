@@ -38,7 +38,7 @@ struct ExerciseDetailView: View {
                     Button {
                         showingLogWorkout = true
                     } label: {
-                        Text("Log Workout")
+                        Text("Дасгал бичих")
                             .font(.headline)
                             .foregroundColor(.white)
                             .padding(.horizontal, 16)
@@ -52,15 +52,15 @@ struct ExerciseDetailView: View {
                 // Stats summary
                 HStack(spacing: 0) {
                     StatCard(
-                        title: "Maximum Weight",
-                        value: "\(String(format: "%.1f", viewModel.calculateMaxWeight(for: exercise.id ?? ""))) kg",
+                        title: "Хамгийн их жин",
+                        value: "\(String(format: "%.1f", viewModel.calculateMaxWeight(for: exercise.id ?? ""))) кг",
                         icon: "scalemass.fill"
                     )
                     
                     Divider()
                     
                     StatCard(
-                        title: "Max Volume",
+                        title: "Хамгийн их эзлэхүүн",
                         value: "\(Int(viewModel.calculateMaxVolume(for: exercise.id ?? "")))",
                         icon: "chart.bar.fill"
                     )
@@ -70,9 +70,9 @@ struct ExerciseDetailView: View {
                 .padding(.horizontal)
                 
                 // Tab selector
-                Picker("View", selection: $selectedTab) {
-                    Text("History").tag(0)
-                    Text("Progress").tag(1)
+                Picker("Харах", selection: $selectedTab) {
+                    Text("Түүх").tag(0)
+                    Text("Ахиц").tag(1)
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal)
@@ -109,10 +109,10 @@ struct ExerciseDetailView: View {
                         .font(.system(size: 40))
                         .foregroundColor(.gray)
                     
-                    Text("No workout history yet")
+                    Text("Дасгалын түүх байхгүй")
                         .font(.headline)
                     
-                    Text("Start logging your workouts to track your progress")
+                    Text("Дасгалаа бичиж ахицаа харна уу")
                         .font(.subheadline)
                         .foregroundColor(.gray)
                         .multilineTextAlignment(.center)
@@ -121,7 +121,7 @@ struct ExerciseDetailView: View {
                     Button {
                         showingLogWorkout = true
                     } label: {
-                        Text("Log Your First Workout")
+                        Text("Эхний дасгалаа бичих")
                             .font(.headline)
                             .foregroundColor(.white)
                             .padding(.horizontal, 20)
@@ -152,10 +152,10 @@ struct ExerciseDetailView: View {
                         .font(.system(size: 40))
                         .foregroundColor(.gray)
                     
-                    Text("Not enough data")
+                    Text("Хангалттай өгөгдөл байхгүй")
                         .font(.headline)
                     
-                    Text("Log at least two workouts to see your progress")
+                    Text("Ахицаа харахын тулд дор хаяж 2 дасгал бичнэ үү")
                         .font(.subheadline)
                         .foregroundColor(.gray)
                         .multilineTextAlignment(.center)
@@ -165,10 +165,10 @@ struct ExerciseDetailView: View {
                 .padding(.vertical, 40)
             } else {
                 // Data type selector
-                Picker("Data Type", selection: $selectedDataType) {
-                    Text("Weight").tag(DataType.weight)
-                    Text("Volume").tag(DataType.volume)
-                    Text("Reps").tag(DataType.reps)
+                Picker("Өгөгдлийн төрөл", selection: $selectedDataType) {
+                    Text("Жин").tag(DataType.weight)
+                    Text("Эзлэхүүн").tag(DataType.volume)
+                    Text("Давталт").tag(DataType.reps)
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal)
@@ -414,7 +414,7 @@ struct ProgressStatsView: View {
     
     private func getProgressTitle() -> String {
         let progress = calculateProgress()
-        return progress >= 0 ? "Increased" : "Decreased"
+        return progress >= 0 ? "Нэмэгдсэн" : "Буурсан"
     }
     
     private func getProgressValue() -> String {
@@ -478,17 +478,17 @@ enum DataType: String, CaseIterable {
     
     var title: String {
         switch self {
-        case .weight: return "Weight"
-        case .volume: return "Volume"
-        case .reps: return "Reps"
+        case .weight: return "Жин"
+        case .volume: return "Эзлэхүүн"
+        case .reps: return "Давталт"
         }
     }
     
     var unit: String {
         switch self {
-        case .weight: return "kg"
+        case .weight: return "кг"
         case .volume: return ""
-        case .reps: return "reps"
+        case .reps: return "давт"
         }
     }
     
@@ -506,12 +506,12 @@ enum TimeRange: String, CaseIterable {
     
     var displayName: String {
         switch self {
-        case .week: return "Week"
-        case .month: return "Month"
-        case .threeMonths: return "3 Months"
-        case .sixMonths: return "6 Months"
-        case .year: return "Year"
-        case .all: return "All Time"
+        case .week: return "Долоо хоног"
+        case .month: return "Сар"
+        case .threeMonths: return "3 Сар"
+        case .sixMonths: return "6 Сар"
+        case .year: return "Жил"
+        case .all: return "Бүх цаг"
         }
     }
     
@@ -572,20 +572,20 @@ struct WorkoutLogCard: View {
                 
                 Spacer()
                 
-                Text("Total: \(Int(log.totalVolume))")
+                Text("Нийт: \(Int(log.totalVolume))")
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }
             
             ForEach(log.sets) { set in
                 HStack {
-                    Text("Set \(log.sets.firstIndex(where: { $0.id == set.id })! + 1)")
+                    Text("Сет \(log.sets.firstIndex(where: { $0.id == set.id })! + 1)")
                         .font(.subheadline)
                         .foregroundColor(.gray)
                     
                     Spacer()
                     
-                    Text("\(set.reps) reps")
+                    Text("\(set.reps) давт")
                         .font(.subheadline)
                     
                     Text("×")
@@ -593,7 +593,7 @@ struct WorkoutLogCard: View {
                         .foregroundColor(.gray)
                         .padding(.horizontal, 4)
                     
-                    Text("\(String(format: "%.1f", set.weight)) kg")
+                    Text("\(String(format: "%.1f", set.weight)) кг")
                         .font(.subheadline)
                 }
             }

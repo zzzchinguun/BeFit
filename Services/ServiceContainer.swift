@@ -23,6 +23,9 @@ class ServiceContainer {
     /// Meal service
     lazy var mealService: MealServiceProtocol = MealService()
     
+    /// Notification view model (can be accessed directly)
+    @MainActor lazy var notificationViewModel: NotificationViewModel = ViewModelFactory.createNotificationViewModel()
+    
     // Add more services as needed
     
     // MARK: - Init

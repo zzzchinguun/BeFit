@@ -14,7 +14,9 @@ struct ProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @StateObject private var viewModel = ViewModelFactory.createProfileViewModel()
     @StateObject private var weightLogViewModel = ViewModelFactory.createWeightLogViewModel()
+    @StateObject private var notificationViewModel = ViewModelFactory.createNotificationViewModel()
     @State private var showWeightLogSheet = false
+    @State private var showNotificationsSheet = false
     
     // MARK: - Body
     
@@ -25,7 +27,7 @@ struct ProfileView: View {
                     // Header with profile info
                     headerView(user: user)
                     
-                    if viewModel.needsOnboarding {
+                    if viewModel.needsOnboarding && (user.goalWeight == nil || user.goalWeight == 0) {
                         Button {
                             viewModel.startOnboarding()
                         } label: {
@@ -87,42 +89,71 @@ struct ProfileView: View {
             .sheet(isPresented: $showWeightLogSheet) {
                 WeightLogSheet(viewModel: weightLogViewModel)
             }
+            .sheet(isPresented: $showNotificationsSheet) {
+                NotificationsView(viewModel: notificationViewModel)
+            }
         }
     }
     
     // MARK: - Header View
     
     private func headerView(user: User) -> some View {
-        Button {
-            viewModel.selectTab(3) // Updated to match the new tab index for profile
-        } label: {
-            HStack {
-                ZStack {
-                    Circle()
-                        .fill(Color.blue.opacity(0.1))
-                        .frame(width: 40, height: 40)
+        HStack {
+            Button {
+                viewModel.selectTab(3) // Updated to match the new tab index for profile
+            } label: {
+                HStack {
+                    ZStack {
+                        Circle()
+                            .fill(Color.blue.opacity(0.1))
+                            .frame(width: 40, height: 40)
+                        
+                        Text(user.initials)
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.blue)
+                    }
                     
-                    Text(user.initials)
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.blue)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Сайн уу,")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                        
+                        Text(user.firstName)
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                    }
                 }
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Сайн уу,")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                    
-                    Text(user.firstName)
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                }
-                
-                Spacer()
             }
-            .padding()
+            .buttonStyle(PlainButtonStyle())
+            
+            Spacer()
+            
+            Button {
+                showNotificationsSheet = true
+            } label: {
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: "bell.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(.blue)
+                        .padding(8)
+                        .background(Color.blue.opacity(0.1))
+                        .clipShape(Circle())
+                    
+                    if notificationViewModel.unreadCount > 0 {
+                        Text("\(notificationViewModel.unreadCount)")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .frame(width: 18, height: 18)
+                            .background(Color.red)
+                            .clipShape(Circle())
+                            .offset(x: 2, y: -2)
+                    }
+                }
+            }
         }
-        .buttonStyle(PlainButtonStyle())
+        .padding()
     }
     
     // MARK: - Tab Bar
