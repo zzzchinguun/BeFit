@@ -100,7 +100,7 @@ struct ProfileView: View {
     private func headerView(user: User) -> some View {
         HStack {
             Button {
-                viewModel.selectTab(3) // Updated to match the new tab index for profile
+                viewModel.selectTab(3) // Tab index for profile
             } label: {
                 HStack {
                     ZStack {

@@ -29,6 +29,20 @@ class ProfileViewModel: ObservableObject {
     
     init(authService: AuthServiceProtocol = ServiceContainer.shared.authService) {
         self.authService = authService
+        
+        // Initialize language setting if it hasn't been set yet
+        if !UserDefaults.standard.bool(forKey: "languageInitialized") {
+            // Default to false (Mongolian) if not set
+            UserDefaults.standard.set(false, forKey: "isEnglishLanguage")
+            UserDefaults.standard.set(true, forKey: "languageInitialized")
+        }
+        
+        // Initialize dark mode setting if it hasn't been set yet
+        if !UserDefaults.standard.bool(forKey: "darkModeInitialized") {
+            // Default to false (light mode) if not set
+            UserDefaults.standard.set(false, forKey: "isDarkMode")
+            UserDefaults.standard.set(true, forKey: "darkModeInitialized")
+        }
     }
     
     // MARK: - Methods

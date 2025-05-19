@@ -2,7 +2,7 @@ import SwiftUI
 struct AnimatedPreferencesButton: View {
     @State private var glowAmount = 0.5
     @State private var gradientRotation = 0.0
-    @State private var bounce = false // Controls bounce animation
+    @State private var bounce = false
     @AppStorage("isEnglishLanguage") private var isEnglishLanguage = false
     let action: () -> Void
     
@@ -12,8 +12,8 @@ struct AnimatedPreferencesButton: View {
                 Image(systemName: "figure.walk")
                     .font(.title2)
                     .foregroundColor(.blue)
-                    .offset(y: bounce ? -2 : 0) // Subtle bounce effect
-                    .scaleEffect(bounce ? 1.05 : 1.0) // Minor scaling
+                    .offset(y: bounce ? -2 : 0)
+                    .scaleEffect(bounce ? 1.05 : 1.0)
                     .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: bounce)
                 
                 Text(isEnglishLanguage ? "Set Body Metrics" : "Биеийн үзүүлэлт тодорхойлох")
@@ -60,12 +60,11 @@ struct AnimatedPreferencesButton: View {
                 gradientRotation = 360
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                bounce = true // Start bounce animation after a short delay
+                bounce = true
             }
         }
     }
 }
-
 
 #Preview {
     AnimatedPreferencesButton(action: {})

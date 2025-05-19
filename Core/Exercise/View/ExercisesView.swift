@@ -38,29 +38,12 @@ struct ExercisesView: View {
                 .background(Color(.secondarySystemBackground))
                 
                 // Search bar
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.gray)
-                    
-                    TextField("Дасгал хайх", text: $searchText)
-                        .onChange(of: searchText) { _ in
-                            viewModel.searchText = searchText
-                            viewModel.filterExercises()
-                        }
-                    
-                    if !searchText.isEmpty {
-                        Button {
-                            searchText = ""
-                            viewModel.searchText = ""
-                            viewModel.filterExercises()
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.gray)
-                        }
+                SearchBar(text: $searchText, placeholder: "Хайх...")
+                    .padding(.horizontal)
+                    .onChange(of: searchText) { _, newValue in
+                        viewModel.searchText = newValue
+                        viewModel.filterExercises()
                     }
-                }
-                .padding()
-                .background(Color(.secondarySystemBackground))
                 
                 List {
                     ForEach(viewModel.filteredExercises) { exercise in
@@ -91,16 +74,16 @@ struct ExercisesView: View {
                 }
                 .listStyle(PlainListStyle())
             }
-//            .navigationTitle("Дасгалууд")
-//            .toolbar {
-//                ToolbarItem(placement: .navigationBarTrailing) {
-//                    Button {
-//                        showingAddCustomExercise = true
-//                    } label: {
-//                        Image(systemName: "plus")
-//                    }
-//                }
-//            }
+            .navigationTitle("Дасгалууд")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showingAddCustomExercise = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
             .sheet(isPresented: $showingAddCustomExercise) {
                 AddCustomExerciseView(viewModel: viewModel)
             }
