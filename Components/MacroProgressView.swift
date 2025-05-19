@@ -2,7 +2,7 @@
 //  MacroProgressView.swift
 //  BeFit
 //
-//  Created by AI Assistant on 3/31/25.
+//  
 //
 
 import SwiftUI
