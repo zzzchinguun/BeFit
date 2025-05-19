@@ -270,18 +270,38 @@ struct ProfileView: View {
                 Toggle(isOn: $viewModel.isDarkMode) {
                     SettingsRowView(
                         imageName: viewModel.isDarkMode ? "moon.fill" : "sun.max.fill",
-                        title: "Шөнийн горим",
+                        title: viewModel.isEnglishLanguage ? "Dark Mode" : "Шөнийн горим",
                         tintColor: viewModel.isDarkMode ? .purple : .orange,
+                        isDeleteButton: false
+                    )
+                }
+                
+                Toggle(isOn: $viewModel.isEnglishLanguage) {
+                    SettingsRowView(
+                        imageName: "globe",
+                        title: viewModel.isEnglishLanguage ? "English" : "Монгол",
+                        tintColor: .blue,
+                        isDeleteButton: false
+                    )
+                }
+                
+                Button {
+                    viewModel.restartOnboarding()
+                } label: {
+                    SettingsRowView(
+                        imageName: "arrow.triangle.2.circlepath",
+                        title: viewModel.isEnglishLanguage ? "Restart body measurement" : "Үзүүлэлт шинэчлэх тохиргоо",
+                        tintColor: .green,
                         isDeleteButton: false
                     )
                 }
             }
             
-            Section("Ерөнхий") {
+            Section(viewModel.isEnglishLanguage ? "General" : "Ерөнхий") {
                 HStack {
                     SettingsRowView(
                         imageName: "gear",
-                        title: "Хувилбар",
+                        title: viewModel.isEnglishLanguage ? "Version" : "Хувилбар",
                         tintColor: Color(.systemGray),
                         isDeleteButton: false
                     )
@@ -293,7 +313,7 @@ struct ProfileView: View {
                 }
             }
             
-            Section("Бүртгэл") {
+            Section(viewModel.isEnglishLanguage ? "Account" : "Бүртгэл") {
                 Button {
                     Task {
                         authViewModel.signOut()
@@ -301,7 +321,7 @@ struct ProfileView: View {
                 } label: {
                     SettingsRowView(
                         imageName: "arrow.left.circle.fill",
-                        title: "Гарах",
+                        title: viewModel.isEnglishLanguage ? "Log Out" : "Гарах",
                         tintColor: Color(.systemGray),
                         isDeleteButton: false
                     )
@@ -312,21 +332,23 @@ struct ProfileView: View {
                 } label: {
                     SettingsRowView(
                         imageName: "minus.circle.fill",
-                        title: "Устгах",
+                        title: viewModel.isEnglishLanguage ? "Delete Account" : "Устгах",
                         tintColor: Color(.systemRed),
                         isDeleteButton: true
                     )
                     
                 }
-                .alert("Бүртгэл устгах", isPresented: $viewModel.showDeleteConfirmation) {
-                    Button("Cancel", role: .cancel) { }
-                    Button("Delete", role: .destructive) {
+                .alert(viewModel.isEnglishLanguage ? "Delete Account" : "Бүртгэл устгах", isPresented: $viewModel.showDeleteConfirmation) {
+                    Button(viewModel.isEnglishLanguage ? "Cancel" : "Цуцлах", role: .cancel) { }
+                    Button(viewModel.isEnglishLanguage ? "Delete" : "Устгах", role: .destructive) {
                         Task {
                             try? await authViewModel.deleteAccount()
                         }
                     }
                 } message: {
-                    Text("Та бүртгэлээ устгахдаа итгэлтэй байна уу? Энэ үйлдлийг буцаах боломжгүй.")
+                    Text(viewModel.isEnglishLanguage ? 
+                         "Are you sure you want to delete your account? This action cannot be undone." : 
+                         "Та бүртгэлээ устгахдаа итгэлтэй байна уу? Энэ үйлдлийг буцаах боломжгүй.")
                 }
             }
         }

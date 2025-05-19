@@ -4,6 +4,7 @@ struct WeightLogButton: View {
     @State private var glowAmount = 0.5
     @State private var gradientRotation = 0.0
     @State private var bounce = false
+    @AppStorage("isEnglishLanguage") private var isEnglishLanguage = false
     let action: () -> Void
     
     var body: some View {
@@ -16,7 +17,7 @@ struct WeightLogButton: View {
                     .scaleEffect(bounce ? 1.05 : 1.0)
                     .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: bounce)
                 
-                Text("Өнөөдрийн жингээ бүртгэх")
+                Text(isEnglishLanguage ? "Log Today's Weight" : "Өнөөдрийн жингээ бүртгэх")
                     .fontWeight(.medium)
             }
             .padding(.horizontal, 20)

@@ -18,6 +18,7 @@ class ProfileViewModel: ObservableObject {
     @Published var needsOnboarding: Bool = !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
     @Published var selectedTab: Int = 0
     @Published var navigationPath = NavigationPath()
+    @Published var isEnglishLanguage: Bool = UserDefaults.standard.bool(forKey: "isEnglishLanguage")
     
     // MARK: - Services
     
@@ -36,6 +37,19 @@ class ProfileViewModel: ObservableObject {
     func toggleDarkMode() {
         isDarkMode.toggle()
         UserDefaults.standard.set(isDarkMode, forKey: "isDarkMode")
+    }
+    
+    /// Toggle language setting
+    func toggleLanguage() {
+        isEnglishLanguage.toggle()
+        UserDefaults.standard.set(isEnglishLanguage, forKey: "isEnglishLanguage")
+    }
+    
+    /// Restart onboarding manually
+    func restartOnboarding() {
+        UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+        checkOnboardingNeeded()
+        startOnboarding()
     }
     
     /// Change selected tab
@@ -89,12 +103,22 @@ class ProfileViewModel: ObservableObject {
     
     /// Get tab title
     func tabTitle(for index: Int) -> String {
-        switch index {
-        case 0: return "Дашборд"
-        case 1: return "Дасгалууд"
-        case 2: return "Хөгжил"
-        case 3: return "Профайл"
-        default: return ""
+        if isEnglishLanguage {
+            switch index {
+            case 0: return "Dashboard"
+            case 1: return "Exercises"
+            case 2: return "Progress"
+            case 3: return "Profile"
+            default: return ""
+            }
+        } else {
+            switch index {
+            case 0: return "Дашборд"
+            case 1: return "Дасгалууд"
+            case 2: return "Хөгжил"
+            case 3: return "Профайл"
+            default: return ""
+            }
         }
     }
 } 

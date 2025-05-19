@@ -3,6 +3,7 @@ struct AnimatedPreferencesButton: View {
     @State private var glowAmount = 0.5
     @State private var gradientRotation = 0.0
     @State private var bounce = false // Controls bounce animation
+    @AppStorage("isEnglishLanguage") private var isEnglishLanguage = false
     let action: () -> Void
     
     var body: some View {
@@ -15,7 +16,7 @@ struct AnimatedPreferencesButton: View {
                     .scaleEffect(bounce ? 1.05 : 1.0) // Minor scaling
                     .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: bounce)
                 
-                Text("Биеийн үзүүлэлт тодорхойлох")
+                Text(isEnglishLanguage ? "Set Body Metrics" : "Биеийн үзүүлэлт тодорхойлох")
                     .fontWeight(.medium)
             }
             .padding(.horizontal, 20)

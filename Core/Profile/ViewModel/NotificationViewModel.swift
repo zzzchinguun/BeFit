@@ -10,7 +10,7 @@ import SwiftUI
 import UserNotifications
 import Combine
 
-struct AppNotification: Identifiable {
+struct AppNotification: Identifiable, Codable {
     let id = UUID()
     let title: String
     let message: String
@@ -18,7 +18,7 @@ struct AppNotification: Identifiable {
     var isRead: Bool = false
     var type: NotificationType
     
-    enum NotificationType {
+    enum NotificationType: String, Codable {
         case workout
         case weight
         case meal
@@ -45,11 +45,35 @@ class NotificationViewModel: ObservableObject {
         // Request notification permissions on init
         requestNotificationPermissions()
         
-        // Load sample notifications for demo purposes
-        loadSampleNotifications()
+        // Load saved notifications from UserDefaults
+        loadNotificationsFromStorage()
+        
+        // Load sample notifications for demo purposes only if they haven't been loaded before
+        if !UserDefaults.standard.bool(forKey: "samplesNotificationsLoaded") && notifications.isEmpty {
+            loadSampleNotifications()
+            UserDefaults.standard.set(true, forKey: "samplesNotificationsLoaded")
+            saveNotificationsToStorage()
+        }
         
         // Calculate unread count
         updateUnreadCount()
+    }
+    
+    // MARK: - Storage Methods
+    
+    /// Load notifications from UserDefaults
+    private func loadNotificationsFromStorage() {
+        if let savedData = UserDefaults.standard.data(forKey: "savedNotifications"),
+           let decodedNotifications = try? JSONDecoder().decode([AppNotification].self, from: savedData) {
+            self.notifications = decodedNotifications
+        }
+    }
+    
+    /// Save notifications to UserDefaults
+    private func saveNotificationsToStorage() {
+        if let encodedData = try? JSONEncoder().encode(notifications) {
+            UserDefaults.standard.set(encodedData, forKey: "savedNotifications")
+        }
     }
     
     // MARK: - Methods
@@ -181,6 +205,7 @@ class NotificationViewModel: ObservableObject {
         
         notifications.insert(newNotification, at: 0)
         updateUnreadCount()
+        saveNotificationsToStorage()
     }
     
     /// Mark a notification as read
@@ -188,6 +213,7 @@ class NotificationViewModel: ObservableObject {
         if let index = notifications.firstIndex(where: { $0.id == notification.id }) {
             notifications[index].isRead = true
             updateUnreadCount()
+            saveNotificationsToStorage()
         }
     }
     
@@ -197,6 +223,7 @@ class NotificationViewModel: ObservableObject {
             notifications[index].isRead = true
         }
         updateUnreadCount()
+        saveNotificationsToStorage()
     }
     
     /// Delete a notification
@@ -204,6 +231,7 @@ class NotificationViewModel: ObservableObject {
         if let index = notifications.firstIndex(where: { $0.id == notification.id }) {
             notifications.remove(at: index)
             updateUnreadCount()
+            saveNotificationsToStorage()
         }
     }
     
@@ -211,6 +239,9 @@ class NotificationViewModel: ObservableObject {
     func clearAllNotifications() {
         notifications.removeAll()
         updateUnreadCount()
+        // Also mark that we've cleared the samples
+        UserDefaults.standard.set(true, forKey: "samplesNotificationsLoaded")
+        saveNotificationsToStorage()
     }
     
     /// Update the unread count

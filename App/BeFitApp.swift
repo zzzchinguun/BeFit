@@ -36,6 +36,24 @@ class AppInitializer {
         
         // Configure UNUserNotificationCenter delegate
         UNUserNotificationCenter.current().delegate = NotificationHandler.shared
+        
+        // Initialize app defaults if not already set
+        setupAppDefaults()
+    }
+    
+    private func setupAppDefaults() {
+        // Only set defaults if they haven't been set already
+        let defaults = UserDefaults.standard
+        
+        // Setup language preference (default to Mongolian - false)
+        if defaults.object(forKey: "isEnglishLanguage") == nil {
+            defaults.set(false, forKey: "isEnglishLanguage")
+        }
+        
+        // Setup dark mode preference if not already set
+        if defaults.object(forKey: "isDarkMode") == nil {
+            defaults.set(false, forKey: "isDarkMode")
+        }
     }
 }
 
