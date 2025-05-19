@@ -181,6 +181,12 @@ struct LoginView: View {
                 Task {
                     do {
                         errorMessage = "" // Clear previous errors
+                        isEmailFocused = false
+                        isPasswordFocused = false
+                        
+                        // Disable keyboard and blur fields before login attempt
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                        
                         print("Attempting login with email: \(email)")
                         try await viewModel.signIn(withEmail: email, password: password)
                     } catch {

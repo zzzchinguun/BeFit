@@ -189,7 +189,6 @@ struct AddMealView: View {
                     .font(.system(size: 20))
                     .foregroundColor(mealTypeColor(selectedMealType))
                     .frame(width: 40, height: 40)
-                    .background(mealTypeColor(selectedMealType).opacity(0.2))
                     .clipShape(Circle())
                 
                 VStack(alignment: .leading, spacing: 4) {

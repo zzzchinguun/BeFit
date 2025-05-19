@@ -58,7 +58,19 @@ class AuthService: FirebaseService, AuthServiceProtocol {
         do {
             let result = try await auth.signIn(withEmail: email, password: password)
             self.userSession = result.user
+            
+            // Don't reset language or theme preferences that the user has set
+            // Only reset onboarding-related flags to ensure user data is properly loaded
+            let defaults = UserDefaults.standard
+            let isEnglishLanguage = defaults.bool(forKey: "isEnglishLanguage")
+            let isDarkMode = defaults.bool(forKey: "isDarkMode")
+            
+            // Fetch user data before setting any defaults
             await fetchUser()
+            
+            // Restore user preferences after login
+            defaults.set(isEnglishLanguage, forKey: "isEnglishLanguage")
+            defaults.set(isDarkMode, forKey: "isDarkMode")
         } catch {
             throw handleError(error)
         }

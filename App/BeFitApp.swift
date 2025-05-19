@@ -37,7 +37,7 @@ class AppInitializer {
         // Configure UNUserNotificationCenter delegate
         UNUserNotificationCenter.current().delegate = NotificationHandler.shared
         
-        // Initialize app defaults if not already set
+        // Initialize app defaults if not already set, but don't reset existing values
         setupAppDefaults()
     }
     
@@ -54,6 +54,14 @@ class AppInitializer {
         if defaults.object(forKey: "isDarkMode") == nil {
             defaults.set(false, forKey: "isDarkMode")
         }
+        
+        // Make sure we're not resetting user notification settings
+        if defaults.object(forKey: "samplesNotificationsLoaded") == nil {
+            defaults.set(false, forKey: "samplesNotificationsLoaded")
+        }
+        
+        // Clean up any potentially corrupted auth token data
+        defaults.removeObject(forKey: "savedNotifications")
     }
 }
 

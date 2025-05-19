@@ -290,7 +290,7 @@ struct ProfileView: View {
                 } label: {
                     SettingsRowView(
                         imageName: "arrow.triangle.2.circlepath",
-                        title: viewModel.isEnglishLanguage ? "Restart body measurement" : "Үзүүлэлт шинэчлэх тохиргоо",
+                        title: viewModel.isEnglishLanguage ? "Restart body measurement" : "Биеийн үзүүлэлт шинэчлэх",
                         tintColor: .green,
                         isDeleteButton: false
                     )

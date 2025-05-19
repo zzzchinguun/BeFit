@@ -12,6 +12,7 @@ struct ContentView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @Environment(\.colorScheme) var colorScheme
     @State private var isShowingSplash = true
+    @State private var hasTriedTestUser = false
     
     var body: some View {
         ZStack {
@@ -24,9 +25,12 @@ struct ContentView: View {
             }
             .background(colorScheme == .dark ? Color.neutralBackgroundDark : Color.neutralBackground)
             .onAppear {
-                Task {
-                    // Setup test user for development environment
-                    authViewModel.setupTestUser()
+                if !hasTriedTestUser {
+                    Task {
+                        // Setup test user for development environment only on first appear
+                        authViewModel.setupTestUser()
+                        hasTriedTestUser = true
+                    }
                 }
             }
             
