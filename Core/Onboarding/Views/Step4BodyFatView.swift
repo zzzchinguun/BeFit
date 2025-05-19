@@ -30,7 +30,7 @@ struct Step4BodyFatView: View {
                         Text("\(Int(user.bodyFatPercentage ?? 15))%")
                             .font(.title2)
                             .fontWeight(.bold)
-                            .foregroundColor(.blue)
+                            .foregroundColor(user.bodyFatPercentage == nil ? .gray : .blue)
                     }
                     
                     Slider(

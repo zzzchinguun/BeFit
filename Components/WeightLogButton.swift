@@ -11,7 +11,7 @@ struct WeightLogButton: View {
             HStack(spacing: 12) {
                 Image(systemName: "scalemass.fill")
                     .font(.title2)
-                    .foregroundColor(.green)
+                    .foregroundColor(Color.primaryApp)
                     .offset(y: bounce ? -2 : 0)
                     .scaleEffect(bounce ? 1.05 : 1.0)
                     .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: bounce)
@@ -23,11 +23,11 @@ struct WeightLogButton: View {
             .padding(.vertical, 12)
             .background(
                 ZStack {
-                    Color.green.opacity(0.1)
+                    Color.primaryApp.opacity(0.1)
                     
                     // Glowing effect
                     Circle()
-                        .fill(Color.green)
+                        .fill(Color.primaryApp)
                         .blur(radius: 20)
                         .opacity(glowAmount)
                         .scaleEffect(1.2)
@@ -38,10 +38,10 @@ struct WeightLogButton: View {
                     .stroke(
                         AngularGradient(
                             gradient: Gradient(colors: [
-                                .green.opacity(0.8),
-                                .blue.opacity(0.6),
-                                .green.opacity(0.4),
-                                .green.opacity(0.8)
+                                Color.primaryApp.opacity(0.8),
+                                Color.blue.opacity(0.6),
+                                Color.primaryApp.opacity(0.4),
+                                Color.primaryApp.opacity(0.8)
                             ]),
                             center: .center,
                             angle: .degrees(gradientRotation)
@@ -49,7 +49,7 @@ struct WeightLogButton: View {
                         lineWidth: 2
                     )
             )
-            .foregroundColor(.green)
+            .foregroundColor(Color.primaryApp)
             .clipShape(Capsule())
         }
         .onAppear {

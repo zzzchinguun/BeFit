@@ -1,4 +1,5 @@
 import SwiftUI
+import Photos
 
 struct Step7MacroView: View {
     @Binding var user: User
@@ -8,6 +9,9 @@ struct Step7MacroView: View {
     @State private var customFat: Double = 0
     @State private var showingCustomize = false
     @State private var showingSaveSuccess = false
+    @State private var saveErrorMessage: String? = nil
+    @State private var showingSaveError = false
+    @State private var photoDelegate: PhotoLibraryDelegate? // Store the delegate as state
     
     let macroPlans = [
         "balanced": (name: "Тэнцвэртэй", protein: 30, carbs: 40, fat: 30),
@@ -130,6 +134,11 @@ struct Step7MacroView: View {
         } message: {
             Text("Зураг амжилттай хадгалагдлаа")
         }
+        .alert("Алдаа гарлаа", isPresented: $showingSaveError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(saveErrorMessage ?? "Зураг хадгалахад алдаа гарлаа")
+        }
     }
     
     private func saveMacrosToPhotos() {
@@ -161,8 +170,21 @@ struct Step7MacroView: View {
         )
         
         if let uiImage = renderer.uiImage {
-            UIImageWriteToSavedPhotosAlbum(uiImage, nil, nil, nil)
-            showingSaveSuccess = true
+            // Create a new delegate instance and store it in state
+            photoDelegate = PhotoLibraryDelegate(
+                onSuccess: {
+                    self.showingSaveSuccess = true
+                },
+                onFailure: { error in
+                    self.saveErrorMessage = error.localizedDescription
+                    self.showingSaveError = true
+                }
+            )
+            
+            UIImageWriteToSavedPhotosAlbum(uiImage, photoDelegate, #selector(PhotoLibraryDelegate.image(_:didFinishSavingWithError:contextInfo:)), nil)
+        } else {
+            saveErrorMessage = "Зураг үүсгэхэд алдаа гарлаа"
+            showingSaveError = true
         }
     }
     

@@ -50,9 +50,9 @@ struct MacroProgressView: View {
 
 #Preview {
     VStack {
-        MacroProgressView(title: "Protein", current: 80, target: 140, color: .blue)
-        MacroProgressView(title: "Carbs", current: 120, target: 240, color: .green)
-        MacroProgressView(title: "Fat", current: 40, target: 60, color: .red)
+        MacroProgressView(title: "Уураг", current: 80, target: 140, color: .blue)
+        MacroProgressView(title: "Нүүрс ус", current: 120, target: 240, color: .green)
+        MacroProgressView(title: "Өөх тос", current: 40, target: 60, color: .red)
     }
     .padding()
 } 

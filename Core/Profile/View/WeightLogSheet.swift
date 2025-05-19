@@ -12,12 +12,12 @@ struct WeightLogSheet: View {
                 // Header image
                 ZStack {
                     Circle()
-                        .fill(Color.green.opacity(0.1))
+                        .fill(Color.primaryApp.opacity(0.1))
                         .frame(width: 120, height: 120)
                     
                     Image(systemName: "scalemass.fill")
                         .font(.system(size: 50))
-                        .foregroundColor(.green)
+                        .foregroundColor(Color.primaryApp)
                 }
                 .padding(.top)
                 
@@ -37,11 +37,11 @@ struct WeightLogSheet: View {
                         Text("\(String(format: "%.1f", viewModel.newWeight)) кг")
                             .font(.title2)
                             .fontWeight(.bold)
-                            .foregroundColor(.green)
+                            .foregroundColor(Color.primaryApp)
                     }
                     
                     Slider(value: $viewModel.newWeight, in: 30...200, step: 0.1)
-                        .tint(.green)
+                        .tint(Color.primaryApp)
                         .padding(.vertical, 8)
                     
                     HStack {
@@ -102,15 +102,15 @@ struct WeightLogSheet: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.green)
-                    .foregroundColor(.white)
+                    .background(Color.primaryApp)
+                    .foregroundColor(.black)
                     .cornerRadius(12)
                 }
                 .disabled(viewModel.isLoggingWeight)
                 .overlay {
                     if viewModel.isLoggingWeight {
                         ProgressView()
-                            .tint(.white)
+                            .tint(.black)
                     }
                 }
             }

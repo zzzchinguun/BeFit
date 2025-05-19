@@ -73,6 +73,10 @@ class AuthService: FirebaseService, AuthServiceProtocol {
             let user = User(id: result.user.uid, firstName: firstName, lastName: lastName, email: email)
             let encodedUser = try Firestore.Encoder().encode(user)
             try await db.collection("users").document(user.id).setData(encodedUser)
+            
+            // Ensure onboarding is required for new users
+            UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+            
             await fetchUser()
         } catch {
             throw handleError(error)
@@ -85,8 +89,14 @@ class AuthService: FirebaseService, AuthServiceProtocol {
             try auth.signOut()
             self.userSession = nil
             
-            // Reset onboarding flag when signing out
+            // Reset all user-related UserDefaults when signing out
+            UserDefaults.standard.removeObject(forKey: "hasCompletedOnboarding")
+            
+            // Explicitly set to false to ensure new users go through onboarding
             UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+            
+            // Notify about user session change
+            NotificationCenter.default.post(name: Notification.Name("userSessionChanged"), object: nil)
         } catch {
             throw handleError(error)
         }

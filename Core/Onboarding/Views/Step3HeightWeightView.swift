@@ -24,6 +24,7 @@ struct Step3HeightWeightView: View {
                         Text("\(Int(user.height ?? 170)) см")
                             .font(.title3)
                             .frame(width: 80)
+                            .foregroundColor(user.height == nil ? .gray : .primary)
                         Button(action: {
                             if let currentHeight = user.height {
                                 user.height = currentHeight + 1
@@ -110,6 +111,7 @@ struct Step3HeightWeightView: View {
                             Text(String(format: "%.1f кг", user.weight ?? 70))
                                 .font(.title3)
                                 .frame(width: 80)
+                                .foregroundColor(user.weight == nil ? .gray : .primary)
                             Button(action: {
                                 if let currentWeight = user.weight {
                                     user.weight = currentWeight + 1

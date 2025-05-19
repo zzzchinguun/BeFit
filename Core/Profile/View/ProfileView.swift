@@ -22,6 +22,9 @@ struct ProfileView: View {
         if let user = authViewModel.currentUser {
             NavigationStack(path: $viewModel.navigationPath) {
                 VStack(spacing: 0) {
+                    // Header with profile info
+                    headerView(user: user)
+                    
                     if viewModel.needsOnboarding {
                         Button {
                             viewModel.startOnboarding()
@@ -45,16 +48,20 @@ struct ProfileView: View {
                     }
                     
                     TabView(selection: $viewModel.selectedTab) {
-                        profileDetailView(user: user)
+                        dashboardView(user: user)
                             .tag(0)
                         
-                        dashboardView(user: user)
+                        ExercisesView()
                             .tag(1)
                         
-                        ExercisesView()
-                            .tag(2)
-                        
                         progressView
+                            .tag(2)
+                            .onAppear {
+                                // Refresh weight logs when the progress tab is shown
+                                weightLogViewModel.fetchWeightLogs()
+                            }
+                            
+                        profileDetailView(user: user)
                             .tag(3)
                     }
                     .tabViewStyle(.page(indexDisplayMode: .never))
@@ -62,6 +69,7 @@ struct ProfileView: View {
                     customTabBar
                 }
                 .navigationBarTitleDisplayMode(.inline)
+                .navigationBarHidden(true)
                 .background(viewModel.isDarkMode ? Color.black : Color(.systemGroupedBackground))
                 .preferredColorScheme(viewModel.isDarkMode ? .dark : .light)
                 .navigationDestination(for: String.self) { route in
@@ -82,6 +90,41 @@ struct ProfileView: View {
         }
     }
     
+    // MARK: - Header View
+    
+    private func headerView(user: User) -> some View {
+        Button {
+            viewModel.selectTab(3) // Updated to match the new tab index for profile
+        } label: {
+            HStack {
+                ZStack {
+                    Circle()
+                        .fill(Color.blue.opacity(0.1))
+                        .frame(width: 40, height: 40)
+                    
+                    Text(user.initials)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.blue)
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Сайн уу,")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                    
+                    Text(user.firstName)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                }
+                
+                Spacer()
+            }
+            .padding()
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
     // MARK: - Tab Bar
     
     private var customTabBar: some View {
@@ -93,15 +136,17 @@ struct ProfileView: View {
                     }
                 }) {
                     VStack(spacing: 4) {
-                        Image(systemName: viewModel.tabIcon(for: index))
-                            .font(.system(size: 24))
+                        Image(systemName: viewModel.selectedTab == index ? 
+                              viewModel.tabIcon(for: index) : 
+                              viewModel.tabIconOutlined(for: index))
+                            .font(.system(size: 22))
                         Text(viewModel.tabTitle(for: index))
                             .font(.caption)
-                            .fontWeight(viewModel.selectedTab == index ? .bold : .regular)
+                            .fontWeight(viewModel.selectedTab == index ? .semibold : .regular)
                     }
                     .foregroundColor(viewModel.selectedTab == index ? .blue : .gray)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 6) // Reduced padding height
                 }
             }
         }
@@ -113,7 +158,7 @@ struct ProfileView: View {
     private func dashboardView(user: User) -> some View {
         ScrollView{
             VStack(spacing: 20) {
-                Text("Dashboard")
+                Text("Хянах самбар")
                     .font(.title)
                     .fontWeight(.bold)
                 
@@ -121,10 +166,10 @@ struct ProfileView: View {
                     GridItem(.flexible()),
                     GridItem(.flexible())
                 ], spacing: 20) {
-                    metricCard(title: "Current Weight", value: "\(Int(user.weight ?? 0))kg", icon: "scalemass.fill")
-                    metricCard(title: "Goal Weight", value: "\(Int(user.goalWeight ?? 0))kg", icon: "target")
-                    metricCard(title: "Days Left", value: "\(user.daysToComplete ?? 0)", icon: "calendar")
-                    metricCard(title: "Daily Calories", value: "\(Int(user.tdee ?? 0))", icon: "flame.fill")
+                    metricCard(title: "Одоогийн жин", value: "\(Int(user.weight ?? 0))кг", icon: "scalemass.fill")
+                    metricCard(title: "Зорилтот жин", value: "\(Int(user.goalWeight ?? 0))кг", icon: "target")
+                    metricCard(title: "Үлдсэн өдөр", value: "\(user.daysToComplete ?? 0)", icon: "calendar")
+                    metricCard(title: "Өдрийн илчлэг", value: "\(Int(user.tdee ?? 0))", icon: "flame.fill")
                 }
                 .padding(.horizontal)
                 
@@ -132,6 +177,9 @@ struct ProfileView: View {
                 
                 // Meal tracking
                 MealsView()
+                
+                // Add spacing at the bottom to prevent overlap with tab bar
+                Spacer().frame(height: 80)
             }
         }
     }
@@ -257,19 +305,26 @@ struct ProfileView: View {
     // MARK: - Progress View
     
     private var progressView: some View {
-        VStack {
-            Text("Progress")
-                .font(.title)
-                .fontWeight(.bold)
-                .padding(.top)
-            
-            Spacer()
-            
-            Text("Coming soon!")
-                .font(.headline)
-                .foregroundColor(.gray)
-            
-            Spacer()
+        WeightProgressView(viewModel: weightLogViewModel)
+    }
+    
+    // MARK: - Helpers
+    
+    /// Check if user has completed all necessary profile data
+    private func checkUserDataCompleteness(_ user: User) {
+        // If any essential fitness data is missing, force onboarding
+        let hasIncompleteData = user.age == nil || 
+                               user.weight == nil || 
+                               user.height == nil ||
+                               user.sex == nil ||
+                               user.bodyFatPercentage == nil ||
+                               user.goalWeight == nil ||
+                               user.daysToComplete == nil
+        
+        if hasIncompleteData {
+            // User has incomplete data, force onboarding
+            UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+            viewModel.checkOnboardingNeeded()
         }
     }
 }

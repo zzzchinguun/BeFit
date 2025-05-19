@@ -10,19 +10,31 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
+    @Environment(\.colorScheme) var colorScheme
+    @State private var isShowingSplash = true
     
     var body: some View {
-        Group {
-            if authViewModel.userSession != nil {
-                ProfileView()
-            } else {
-                LoginView()
+        ZStack {
+            Group {
+                if authViewModel.userSession != nil {
+                    ProfileView()
+                } else {
+                    LoginView()
+                }
             }
-        }
-        .onAppear {
-            Task {
-                // Setup test user for development environment
-                authViewModel.setupTestUser()
+            .background(colorScheme == .dark ? Color.neutralBackgroundDark : Color.neutralBackground)
+            .onAppear {
+                Task {
+                    // Setup test user for development environment
+                    authViewModel.setupTestUser()
+                }
+            }
+            
+            // Show splash screen on top if needed
+            if isShowingSplash {
+                SplashScreenView(isActive: $isShowingSplash)
+                    .transition(.opacity)
+                    .zIndex(1)
             }
         }
     }

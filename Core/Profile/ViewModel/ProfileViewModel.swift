@@ -56,20 +56,33 @@ class ProfileViewModel: ObservableObject {
     /// Check if onboarding is needed on app launch
     func checkOnboardingNeeded() {
         // Refresh the flag from UserDefaults to get the latest value
-        needsOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+        let hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+        needsOnboarding = !hasCompletedOnboarding
         
-        if needsOnboarding {
-            navigationPath.append("onboarding")
-        }
+        // Disable automatic navigation to onboarding
+        // if needsOnboarding {
+        //     navigationPath.append("onboarding")
+        // }
     }
     
     /// Get tab icon
     func tabIcon(for index: Int) -> String {
         switch index {
-        case 0: return "person.circle.fill"
-        case 1: return "chart.bar.fill"
-        case 2: return "dumbbell.fill"
-        case 3: return "arrow.up.right.circle.fill"
+        case 0: return "chart.bar.fill"
+        case 1: return "dumbbell.fill"
+        case 2: return "arrow.up.right.circle.fill"
+        case 3: return "person.circle.fill"
+        default: return ""
+        }
+    }
+    
+    /// Get outlined tab icon
+    func tabIconOutlined(for index: Int) -> String {
+        switch index {
+        case 0: return "chart.bar"
+        case 1: return "dumbbell"
+        case 2: return "arrow.up.right.circle"
+        case 3: return "person.circle"
         default: return ""
         }
     }
@@ -77,10 +90,10 @@ class ProfileViewModel: ObservableObject {
     /// Get tab title
     func tabTitle(for index: Int) -> String {
         switch index {
-        case 0: return "Profile"
-        case 1: return "Dashboard"
-        case 2: return "Exercises"
-        case 3: return "Progress"
+        case 0: return "Дашборд"
+        case 1: return "Дасгалууд"
+        case 2: return "Хөгжил"
+        case 3: return "Профайл"
         default: return ""
         }
     }

@@ -24,6 +24,7 @@ struct Step2BasicInfoView: View {
                         TextField("18", value: $user.age, format: .number)
                             .keyboardType(.numberPad)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .foregroundColor(user.age == nil ? .gray : .primary)
                         
                         Stepper("", value: Binding(
                             get: { user.age ?? 18 },

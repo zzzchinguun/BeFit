@@ -45,9 +45,9 @@ struct MealsView: View {
                     }
                 }
         }
-        .alert("Delete Meal", isPresented: $showDeleteAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Delete", role: .destructive) {
+        .alert("Хоол устгах", isPresented: $showDeleteAlert) {
+            Button("Цуцлах", role: .cancel) { }
+            Button("Устгах", role: .destructive) {
                 if let meal = mealToDelete {
                     Task {
                         try? await viewModel.deleteMeal(meal)
@@ -56,7 +56,7 @@ struct MealsView: View {
             }
         } message: {
             if let meal = mealToDelete {
-                Text("Are you sure you want to delete \(meal.name)?")
+                Text("\(meal.name) устгахдаа итгэлтэй байна уу?")
             }
         }
         .onAppear {
@@ -81,7 +81,7 @@ struct MealsView: View {
     private var nutritionHeaderView: some View {
         VStack(spacing: 15) {
             HStack {
-                Text("Today's Nutrition")
+                Text("Таны зорилт ")
                     .font(.title2)
                     .fontWeight(.bold)
                 
@@ -111,7 +111,7 @@ struct MealsView: View {
     private var caloriesCard: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Calories")
+                Text("Авсан илчлэг")
                     .font(.headline)
                     .foregroundColor(.secondary)
                 
@@ -168,7 +168,7 @@ struct MealsView: View {
             if let userMacros = authViewModel.currentUser?.macros {
                 VStack(spacing: 10) {
                     MacroProgressView(
-                        title: "Protein",
+                        title: "Уураг",
                         current: viewModel.calculateTodayTotals().protein,
                         target: userMacros.protein,
                         color: .blue
@@ -176,7 +176,7 @@ struct MealsView: View {
                     .contentTransition(.interpolate)
                     
                     MacroProgressView(
-                        title: "Carbs",
+                        title: "Нүүрс ус",
                         current: viewModel.calculateTodayTotals().carbs,
                         target: userMacros.carbs,
                         color: .green
@@ -184,7 +184,7 @@ struct MealsView: View {
                     .contentTransition(.interpolate)
                     
                     MacroProgressView(
-                        title: "Fat",
+                        title: "Өөх тос",
                         current: viewModel.calculateTodayTotals().fat,
                         target: userMacros.fat,
                         color: .red
@@ -202,7 +202,7 @@ struct MealsView: View {
     // MARK: - Meals Section Header
     private var mealsSectionHeader: some View {
         HStack {
-            Text("Today's Meals")
+            Text("Өнөөдөр")
                 .font(.headline)
             
             Spacer()
@@ -210,7 +210,7 @@ struct MealsView: View {
             Button {
                 showAddMealSheet = true
             } label: {
-                Label("Add", systemImage: "plus.circle.fill")
+                Label("Нэмэх", systemImage: "plus.circle.fill")
                     .foregroundColor(.blue)
             }
         }
@@ -239,10 +239,10 @@ struct MealsView: View {
                 .foregroundColor(.secondary)
                 .padding()
             
-            Text("No meals added today")
+            Text("Өнөөдөр хоол нэмэгдээгүй байна")
                 .font(.headline)
             
-            Text("Tap the + button to add your first meal")
+            Text("Анхны хоолоо нэмэхийн тулд + товчийг дарна уу")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
         }

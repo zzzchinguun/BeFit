@@ -1,9 +1,13 @@
 import SwiftUI
+import Photos
 
 struct Step5GoalWeightDaysView: View {
     @Binding var user: User
     @State var showSheet: Bool = false
     @State private var showingSaveSuccess = false
+    @State private var saveErrorMessage: String? = nil
+    @State private var showingSaveError = false
+    @State private var photoDelegate: PhotoLibraryDelegate? // Store the delegate as state
     
     var body: some View {
         ScrollView {
@@ -77,6 +81,11 @@ struct Step5GoalWeightDaysView: View {
         } message: {
             Text("Зураг амжилттай хадгалагдлаа")
         }
+        .alert("Алдаа гарлаа", isPresented: $showingSaveError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(saveErrorMessage ?? "Зураг хадгалахад алдаа гарлаа")
+        }
     }
     
     private func saveToPhotos(text: String) {
@@ -97,8 +106,21 @@ struct Step5GoalWeightDaysView: View {
         )
         
         if let uiImage = renderer.uiImage {
-            UIImageWriteToSavedPhotosAlbum(uiImage, nil, nil, nil)
-            showingSaveSuccess = true
+            // Create a new delegate instance and store it in state
+            photoDelegate = PhotoLibraryDelegate(
+                onSuccess: {
+                    self.showingSaveSuccess = true
+                },
+                onFailure: { error in
+                    self.saveErrorMessage = error.localizedDescription
+                    self.showingSaveError = true
+                }
+            )
+            
+            UIImageWriteToSavedPhotosAlbum(uiImage, photoDelegate, #selector(PhotoLibraryDelegate.image(_:didFinishSavingWithError:contextInfo:)), nil)
+        } else {
+            saveErrorMessage = "Зураг үүсгэхэд алдаа гарлаа"
+            showingSaveError = true
         }
     }
 }
