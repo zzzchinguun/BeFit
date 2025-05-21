@@ -12,14 +12,12 @@ struct WeightLogButton: View {
             HStack(spacing: 12) {
                 Image(systemName: "scalemass.fill")
                     .font(.title2)
-                    .foregroundColor(Color.black.opacity(0.8))
                     .offset(y: bounce ? -2 : 0)
                     .scaleEffect(bounce ? 1.05 : 1.0)
                     .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: bounce)
                 
                 Text(isEnglishLanguage ? "Log Today's Weight" : "Өнөөдрийн жингээ бүртгэх")
                     .fontWeight(.medium)
-                    .foregroundColor(Color.black.opacity(0.8))
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
@@ -51,7 +49,7 @@ struct WeightLogButton: View {
                         lineWidth: 2
                     )
             )
-            .foregroundColor(Color.primaryApp)
+            .foregroundColor(Color.primary)
             .clipShape(Capsule())
         }
         .onAppear {

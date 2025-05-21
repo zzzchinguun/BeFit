@@ -13,7 +13,8 @@ import Combine
 class ProfileViewModel: ObservableObject {
     // MARK: - Published Properties
     
-    @Published var isDarkMode: Bool = UserDefaults.standard.bool(forKey: "isDarkMode")
+    @Published var isDarkMode: Bool = UserDefaults.standard.object(forKey: "isDarkMode") != nil ? UserDefaults.standard.bool(forKey: "isDarkMode") : false
+    @Published var appearanceMode: Int = UserDefaults.standard.object(forKey: "isDarkMode") == nil ? 0 : (UserDefaults.standard.bool(forKey: "isDarkMode") ? 1 : 2)
     @Published var showDeleteConfirmation: Bool = false
     @Published var needsOnboarding: Bool = !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
     @Published var selectedTab: Int = 0
@@ -37,20 +38,50 @@ class ProfileViewModel: ObservableObject {
             UserDefaults.standard.set(true, forKey: "languageInitialized")
         }
         
-        // Initialize dark mode setting if it hasn't been set yet
-        if !UserDefaults.standard.bool(forKey: "darkModeInitialized") {
-            // Default to false (light mode) if not set
-            UserDefaults.standard.set(false, forKey: "isDarkMode")
-            UserDefaults.standard.set(true, forKey: "darkModeInitialized")
+        // Update the dark mode value based on system settings if needed
+        if UserDefaults.standard.object(forKey: "isDarkMode") == nil {
+            isDarkMode = isSystemInDarkMode()
+        }
+        
+        // Set up observer for system appearance changes
+        setupAppearanceObserver()
+    }
+    
+    // Detect system appearance
+    private func isSystemInDarkMode() -> Bool {
+        return UITraitCollection.current.userInterfaceStyle == .dark
+    }
+    
+    // Set up observer for system appearance changes
+    private func setupAppearanceObserver() {
+        // Only observe system changes if user hasn't set a preference
+        if UserDefaults.standard.object(forKey: "isDarkMode") == nil {
+            NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
+                .sink { [weak self] _ in
+                    // Update theme based on system setting when app becomes active
+                    if UserDefaults.standard.object(forKey: "isDarkMode") == nil {
+                        self?.isDarkMode = self?.isSystemInDarkMode() ?? false
+                    }
+                }
+                .store(in: &cancellables)
         }
     }
     
     // MARK: - Methods
     
-    /// Toggle dark mode setting
+    /// Toggle dark mode setting and save user preference
     func toggleDarkMode() {
         isDarkMode.toggle()
         UserDefaults.standard.set(isDarkMode, forKey: "isDarkMode")
+        appearanceMode = isDarkMode ? 1 : 2 // Dark = 1, Light = 2
+    }
+    
+    /// Use system theme by removing user preference
+    func useSystemTheme() {
+        // Remove user preference and use system setting
+        UserDefaults.standard.removeObject(forKey: "isDarkMode")
+        isDarkMode = isSystemInDarkMode()
+        appearanceMode = 0 // System mode
     }
     
     /// Toggle language setting

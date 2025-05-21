@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct LoginView: View {
     @State private var email = ""
@@ -14,6 +15,8 @@ struct LoginView: View {
     @State private var showStatusSheet = false
     @State private var loginError: Error?
     @State private var errorMessage: String = ""
+    @State private var showEmergencyReset = false
+    @State private var loginAttempts = 0
     @FocusState private var isEmailFocused: Bool
     @FocusState private var isPasswordFocused: Bool
     @State private var isAnimationReady = false
@@ -23,6 +26,34 @@ struct LoginView: View {
     
     // Helper function to get user-friendly error message
     private func getUserFriendlyErrorMessage(from error: Error) -> String {
+        // If it's a Firebase error, extract its message
+        if let firebaseError = error as? FirebaseError {
+            let errorMessage = firebaseError.localizedDescription.lowercased()
+            
+            // Use Mongolian error messages
+            if errorMessage.contains("no user found") {
+                return "Ийм и-мэйл хаягтай хэрэглэгч олдсонгүй."
+            } else if errorMessage.contains("wrong password") {
+                return "Нууц үг буруу байна."
+            } else if errorMessage.contains("network") {
+                return "Интернэт холболтоо шалгана уу."
+            } else if errorMessage.contains("deleted") || errorMessage.contains("not found") {
+                return "Энэ бүртгэл устгагдсан байна."
+            } else if errorMessage.contains("invalid email") {
+                return "И-мэйл хаяг буруу байна."
+            } else if errorMessage.contains("disabled") {
+                return "Энэ бүртгэл түр хаагдсан байна."
+            } else if errorMessage.contains("too many attempts") {
+                return "Хэт олон удаа оролдлоо. Түр хүлээнэ үү."
+            }  else if errorMessage.contains("malformed or has expired") {
+                return "Энэ бүртгэл хаагдсан байна."
+            }
+            
+            // Return the firebase error message if no specific translation
+            return firebaseError.localizedDescription
+        }
+        
+        // Process regular errors
         let errorMessage = error.localizedDescription.lowercased()
         
         if errorMessage.contains("no user record") || errorMessage.contains("wrong password") {
@@ -35,9 +66,28 @@ struct LoginView: View {
             return "И-мэйл хаяг буруу байна."
         } else if errorMessage.contains("operation") {
             return "И-мэйл эсвэл нууц үг буруу байна."
+        } else if errorMessage.contains("account not found") || errorMessage.contains("has been deleted") {
+            return "Энэ бүртгэл устгагдсан байна."
         }
         
+        // If we don't have a specific translation, return the original
         return error.localizedDescription
+    }
+    
+    // Function to trigger emergency app reset
+    private func triggerEmergencyReset() {
+        // Reset view state
+        email = ""
+        password = ""
+        errorMessage = ""
+        showEmergencyReset = false
+        loginAttempts = 0
+        
+        // Clean local auth state
+        viewModel.userSession = nil
+        
+        // Post notification to trigger app-wide reset
+        NotificationCenter.default.post(name: Notification.Name("forceAuthReset"), object: nil)
     }
     
     // Update title visibility when focus changes
@@ -97,6 +147,32 @@ struct LoginView: View {
                 // Pre-load and cache layout
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     isAnimationReady = true
+                }
+                
+                // Only reset login state if we're coming from a fresh start
+                if viewModel.currentUser == nil && viewModel.userSession == nil {
+                    // We're in a clean login state, can clear any stale errors
+                    errorMessage = ""
+                    
+                    // Reset login attempts if we're in a fresh session
+                    if !showEmergencyReset {
+                        loginAttempts = 0
+                    }
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("authenticationFailed"))) { notification in
+                // Force update on main thread to ensure UI updates
+                DispatchQueue.main.async {
+                    if let error = notification.object as? Error {
+                        errorMessage = getUserFriendlyErrorMessage(from: error)
+                        print("Received authentication failure: \(errorMessage)")
+                        
+                        // Increment login attempts to show reset button if needed
+                        loginAttempts += 1
+                        if loginAttempts >= 2 {
+                            showEmergencyReset = true
+                        }
+                    }
                 }
             }
             .preferredColorScheme(isDarkMode ? .dark : .light)
@@ -158,16 +234,20 @@ struct LoginView: View {
                 .cornerRadius(12)
             }
             
-            // Error message
+            // Error message displayed just below the password field for better visibility
             if !errorMessage.isEmpty {
                 Text(errorMessage)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundColor(.red)
-                    .padding(.top, -10)
+                    .padding(.top, 5)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 5)
             }
             
             NavigationLink {
                 ForgotPasswordView()
+                    .navigationBarBackButtonHidden()
             } label: {
                 Text("Нууц үг мартсан уу?")
                     .font(.footnote)
@@ -180,7 +260,14 @@ struct LoginView: View {
             Button {
                 Task {
                     do {
-                        errorMessage = "" // Clear previous errors
+                        // Increment login attempts
+                        loginAttempts += 1
+                        
+                        // Clear previous errors when making a new attempt
+                        DispatchQueue.main.async {
+                            errorMessage = ""
+                        }
+                        
                         isEmailFocused = false
                         isPasswordFocused = false
                         
@@ -191,9 +278,19 @@ struct LoginView: View {
                         try await viewModel.signIn(withEmail: email, password: password)
                     } catch {
                         loginError = error
-                        errorMessage = getUserFriendlyErrorMessage(from: error)
-                        showStatusSheet = true
-                        print("Login failed with error: \(errorMessage)")
+                        // Get user-friendly error message
+                        let friendlyError = getUserFriendlyErrorMessage(from: error)
+                        
+                        // Force update on main thread
+                        DispatchQueue.main.async {
+                            errorMessage = friendlyError
+                            print("Login failed with error: \(friendlyError)")
+                            
+                            // Show emergency reset button after 2 failed attempts
+                            if loginAttempts >= 2 {
+                                showEmergencyReset = true
+                            }
+                        }
                     }
                 }
             } label: {
@@ -211,6 +308,22 @@ struct LoginView: View {
                 )
             }
             .disabled(!formIsValid)
+            
+            // Emergency Reset Button (only appears after failed login attempts)
+            if showEmergencyReset {
+                Button {
+                    triggerEmergencyReset()
+                } label: {
+                    HStack {
+                        Image(systemName: "arrow.counterclockwise.circle.fill")
+                        Text("Апп-ыг дахин эхлүүлэх")
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(.orange)
+                    .font(.callout)
+                    .padding(.top, 12)
+                }
+            }
             
             Spacer()
             

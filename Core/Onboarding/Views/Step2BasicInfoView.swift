@@ -59,6 +59,7 @@ struct Step2BasicInfoView: View {
                                         .cornerRadius(8)
                                 }
                             }
+                            .buttonStyle(PlainButtonStyle()) // Add this to ensure buttons are tappable
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading) // Ensures alignment
@@ -101,10 +102,35 @@ struct Step2BasicInfoView: View {
                             )
                         }
                         .foregroundColor(.primary)
+                        .buttonStyle(PlainButtonStyle()) // Add this to ensure buttons are tappable
                     }
                 }
             }
             .padding()
         }
     }
+}
+
+#Preview {
+    // Create a mutable instance of User for use with the binding
+    struct PreviewWrapper: View {
+        @State private var user = User(
+            id: UUID().uuidString,
+            firstName: "Test",
+            lastName: "User",
+            email: "test@example.com",
+            age: nil,
+            weight: nil,
+            height: nil,
+            sex: nil,
+            activityLevel: nil
+        )
+        
+        var body: some View {
+            Step2BasicInfoView(user: $user)
+                .previewDisplayName("Basic Info View")
+        }
+    }
+    
+    return PreviewWrapper()
 }

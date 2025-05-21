@@ -27,6 +27,13 @@ struct OnboardingView: View {
                                     .stroke(Color.blue.opacity(0.3), lineWidth: currentStep == step ? 2 : 0)
                                     .scaleEffect(1.2)
                             )
+                            .onTapGesture {
+                                withAnimation {
+                                    dismissKeyboard()
+                                    currentStep = step
+                                    validationMessage = nil
+                                }
+                            }
                     }
                 }
                 .padding(.horizontal, 24)
@@ -87,8 +94,6 @@ struct OnboardingView: View {
                     .focused($isAnyFieldFocused)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .disabled(true)
-            .gesture(DragGesture())
             
             // Validation message if needed
             if let message = validationMessage {

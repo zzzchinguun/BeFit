@@ -66,7 +66,22 @@ class AuthViewModel: ObservableObject {
             try await authService.signIn(email: email, password: password)
             self.userSession = Auth.auth().currentUser
         } catch {
+            // Force reset userSession to nil to ensure UI updates properly
+            self.userSession = nil
+            
+            // Ensure UI updates by posting a notification
+            NotificationCenter.default.post(name: Notification.Name("userSessionChanged"), object: nil)
+            
+            // Log the error
             print("DEBUG log in failed with error: \(error.localizedDescription)")
+            
+            // Also post to our custom authentication failed notification
+            // First post on the main thread for immediate UI update
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: Notification.Name("authenticationFailed"), object: error)
+            }
+            
+            // Rethrow the error to be handled by the caller
             throw error
         }
     }

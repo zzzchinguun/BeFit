@@ -11,12 +11,25 @@ import UserNotifications
 import Combine
 
 struct AppNotification: Identifiable, Codable {
-    let id = UUID()
-    let title: String
-    let message: String
-    let date: Date
+    var id: UUID
+    var title: String
+    var message: String
+    var date: Date
     var isRead: Bool = false
     var type: NotificationType
+    
+    init(id: UUID = UUID(), title: String, message: String, date: Date, isRead: Bool = false, type: NotificationType) {
+        self.id = id
+        self.title = title
+        self.message = message
+        self.date = date
+        self.isRead = isRead
+        self.type = type
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case id, title, message, date, isRead, type
+    }
     
     enum NotificationType: String, Codable {
         case workout
@@ -151,6 +164,9 @@ class NotificationViewModel: ObservableObject {
     
     /// Schedule a daily workout reminder
     func scheduleWorkoutReminder(hour: Int, minute: Int) {
+        // Remove any existing workout reminders
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: ["workoutReminder", "workoutReminderAlternate"])
+        
         let content = UNMutableNotificationContent()
         content.title = "Дасгалын цаг"
         content.body = "Өнөөдрийн дасгалаа хийх цаг болсон!"
@@ -160,6 +176,8 @@ class NotificationViewModel: ObservableObject {
         var dateComponents = DateComponents()
         dateComponents.hour = hour
         dateComponents.minute = minute
+        // Only send reminders on Monday, Wednesday and Friday (1, 3, 5)
+        dateComponents.weekday = 1 // Sunday = 1, Monday = 2, etc.
         
         let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
         let request = UNNotificationRequest(identifier: "workoutReminder", content: content, trigger: trigger)
@@ -169,10 +187,28 @@ class NotificationViewModel: ObservableObject {
                 print("Error scheduling workout reminder: \(error.localizedDescription)")
             }
         }
+        
+        // Add alternate days (Wednesday = 4)
+        var altDateComponents = DateComponents()
+        altDateComponents.hour = hour
+        altDateComponents.minute = minute
+        altDateComponents.weekday = 4
+        
+        let altTrigger = UNCalendarNotificationTrigger(dateMatching: altDateComponents, repeats: true)
+        let altRequest = UNNotificationRequest(identifier: "workoutReminderAlternate", content: content, trigger: altTrigger)
+        
+        notificationCenter.add(altRequest) { error in
+            if let error = error {
+                print("Error scheduling alternate workout reminder: \(error.localizedDescription)")
+            }
+        }
     }
     
     /// Schedule a daily weight log reminder
     func scheduleWeightLogReminder(hour: Int, minute: Int) {
+        // Remove any existing weight log reminders
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: ["weightLogReminder"])
+        
         let content = UNMutableNotificationContent()
         content.title = "Жин бүртгэх"
         content.body = "Өнөөдрийн жингээ бүртгээгүй байна!"
@@ -182,6 +218,8 @@ class NotificationViewModel: ObservableObject {
         var dateComponents = DateComponents()
         dateComponents.hour = hour
         dateComponents.minute = minute
+        // Only send weight reminders twice a week (Monday and Friday)
+        dateComponents.weekday = 2 // Monday = 2
         
         let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
         let request = UNNotificationRequest(identifier: "weightLogReminder", content: content, trigger: trigger)
@@ -191,11 +229,27 @@ class NotificationViewModel: ObservableObject {
                 print("Error scheduling weight log reminder: \(error.localizedDescription)")
             }
         }
+        
+        // Add another reminder for Friday
+        var fridayComponents = DateComponents()
+        fridayComponents.hour = hour
+        fridayComponents.minute = minute
+        fridayComponents.weekday = 6 // Friday = 6
+        
+        let fridayTrigger = UNCalendarNotificationTrigger(dateMatching: fridayComponents, repeats: true)
+        let fridayRequest = UNNotificationRequest(identifier: "weightLogReminderFriday", content: content, trigger: fridayTrigger)
+        
+        notificationCenter.add(fridayRequest) { error in
+            if let error = error {
+                print("Error scheduling Friday weight log reminder: \(error.localizedDescription)")
+            }
+        }
     }
     
     /// Add a new notification to the list
     func addNotification(title: String, message: String, type: AppNotification.NotificationType) {
         let newNotification = AppNotification(
+            id: UUID(),
             title: title,
             message: message,
             date: Date(),
@@ -256,6 +310,7 @@ class NotificationViewModel: ObservableObject {
     private func loadSampleNotifications() {
         let sampleNotifications = [
             AppNotification(
+                id: UUID(),
                 title: "Дасгалын цаг",
                 message: "Өнөөдрийн дасгалаа хийх цаг болсон!",
                 date: Date().addingTimeInterval(-3600),
@@ -263,6 +318,7 @@ class NotificationViewModel: ObservableObject {
                 type: .workout
             ),
             AppNotification(
+                id: UUID(),
                 title: "Жин бүртгэх",
                 message: "Жинг бүртгэх цаг болсон",
                 date: Date().addingTimeInterval(-7200),
@@ -270,6 +326,7 @@ class NotificationViewModel: ObservableObject {
                 type: .weight
             ),
             AppNotification(
+                id: UUID(),
                 title: "Усны хэрэглээ",
                 message: "Өнөөдөр ус уухаа мартаж байна!",
                 date: Date().addingTimeInterval(-10800),
@@ -277,6 +334,7 @@ class NotificationViewModel: ObservableObject {
                 type: .water
             ),
             AppNotification(
+                id: UUID(),
                 title: "Амжилт!",
                 message: "Таны нийт жин 3 кг буурсан байна!",
                 date: Date().addingTimeInterval(-86400),

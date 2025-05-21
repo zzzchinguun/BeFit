@@ -12,10 +12,13 @@ struct MealsView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var showAddMealSheet = false
     @State private var showDeleteAlert = false
+    @State private var showNutritionDatabase = false
     @State private var mealToDelete: Meal?
     @State private var addedMealId: String? = nil
     @State private var shouldHighlightNewMeal = false
     @State private var currentDetent: PresentationDetent = .medium
+    @AppStorage("isEnglishLanguage") private var isEnglishLanguage = false
+    @State private var expandedMealId: String? = nil
     
     var body: some View {
         VStack(spacing: 20) {
@@ -74,6 +77,14 @@ struct MealsView: View {
         }
         .refreshable {
             await viewModel.fetchMeals()
+        }
+        .sheet(isPresented: $showNutritionDatabase) {
+            NutritionDatabaseView()
+                .onDisappear {
+                    Task {
+                        await viewModel.fetchMeals()
+                    }
+                }
         }
     }
     
@@ -202,15 +213,36 @@ struct MealsView: View {
     // MARK: - Meals Section Header
     private var mealsSectionHeader: some View {
         HStack {
-            Text("Өнөөдөр")
+            Text("Өнөөдрийн хоол")
                 .font(.headline)
+                .foregroundColor(.primary)
             
             Spacer()
+            
+            // Button to open nutrition database
+            Button {
+                showNutritionDatabase = true
+            } label: {
+                HStack(spacing: 4) {
+                    Text(isEnglishLanguage ? "Nutrition Database" : "Хоолны сан")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                    
+                    Image(systemName: "fork.knife")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(8)
+            }
             
             Button {
                 showAddMealSheet = true
             } label: {
-                Label("Нэмэх", systemImage: "plus.circle.fill")
+                Image(systemName: "plus.circle.fill")
+                    .font(.title3)
                     .foregroundColor(.blue)
             }
         }
@@ -263,10 +295,15 @@ struct MealsView: View {
     
     // MARK: - Meal Row Item
     private func mealRowView(for meal: Meal) -> some View {
-        MealRowView(meal: meal, viewModel: viewModel) {
-            mealToDelete = meal
-            showDeleteAlert = true
-        }
+        MealRowView(
+            meal: meal, 
+            viewModel: viewModel,
+            onDelete: {
+                mealToDelete = meal
+                showDeleteAlert = true
+            },
+            expandedMealId: $expandedMealId
+        )
         .padding(.horizontal)
         .background(
             mealRowBackground(for: meal)

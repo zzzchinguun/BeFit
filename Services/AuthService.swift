@@ -55,12 +55,38 @@ class AuthService: FirebaseService, AuthServiceProtocol {
     
     /// Signs in a user with email and password
     func signIn(email: String, password: String) async throws {
+        // Clear userSession first to ensure a clean slate
+        self.userSession = nil
+        
         do {
             let result = try await auth.signIn(withEmail: email, password: password)
+            
+            // Before setting userSession, verify that user data exists in Firestore
+            let userRef = db.collection("users").document(result.user.uid)
+            let snapshot = try await userRef.getDocument()
+            
+            guard snapshot.exists, let _ = try? snapshot.data(as: User.self) else {
+                // User record doesn't exist in Firestore - this is a deleted account
+                print("DEBUG: Account exists in Auth but not in Firestore - likely deleted")
+                
+                // Sign out from Firebase Auth
+                try? await auth.currentUser?.delete()
+                try? auth.signOut()
+                
+                // Ensure local state is cleaned up
+                self.userSession = nil
+                self.currentUser.send(nil)
+                
+                // Post notification to trigger UI updates
+                NotificationCenter.default.post(name: Notification.Name("userSessionChanged"), object: nil)
+                
+                throw FirebaseError.authError("Account not found or has been deleted")
+            }
+            
+            // User exists, proceed with sign-in
             self.userSession = result.user
             
             // Don't reset language or theme preferences that the user has set
-            // Only reset onboarding-related flags to ensure user data is properly loaded
             let defaults = UserDefaults.standard
             let isEnglishLanguage = defaults.bool(forKey: "isEnglishLanguage")
             let isDarkMode = defaults.bool(forKey: "isDarkMode")
@@ -71,8 +97,39 @@ class AuthService: FirebaseService, AuthServiceProtocol {
             // Restore user preferences after login
             defaults.set(isEnglishLanguage, forKey: "isEnglishLanguage")
             defaults.set(isDarkMode, forKey: "isDarkMode")
-        } catch {
-            throw handleError(error)
+        } catch let error as NSError {
+            // Ensure userSession is nil on any error
+            self.userSession = nil
+            self.currentUser.send(nil)
+            
+            // Process error more specifically
+            let firebaseError: FirebaseError
+            
+            if error.domain == AuthErrorDomain {
+                // Handle specific Firebase Auth errors
+                switch error.code {
+                case AuthErrorCode.userNotFound.rawValue:
+                    firebaseError = FirebaseError.authError("No user found with that email")
+                case AuthErrorCode.wrongPassword.rawValue:
+                    firebaseError = FirebaseError.authError("Wrong password")
+                case AuthErrorCode.userDisabled.rawValue:
+                    firebaseError = FirebaseError.authError("This account has been disabled")
+                case AuthErrorCode.invalidEmail.rawValue:
+                    firebaseError = FirebaseError.authError("Invalid email format")
+                case AuthErrorCode.networkError.rawValue:
+                    firebaseError = FirebaseError.networkError("Network connection issue")
+                default:
+                    firebaseError = FirebaseError.authError(error.localizedDescription)
+                }
+            } else {
+                firebaseError = handleError(error)
+            }
+            
+            // Notify about authentication failure with specific error
+            NotificationCenter.default.post(name: Notification.Name("authenticationFailed"), object: firebaseError)
+            
+            // Throw the specific error
+            throw firebaseError
         }
     }
     
@@ -138,6 +195,15 @@ class AuthService: FirebaseService, AuthServiceProtocol {
             
             // Clear local user session
             self.userSession = nil
+            
+            // Reset all user-related UserDefaults when signing out
+            UserDefaults.standard.removeObject(forKey: "hasCompletedOnboarding")
+            
+            // Explicitly set to false to ensure new users go through onboarding
+            UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+            
+            // Notify about user session change - this ensures the UI updates properly
+            NotificationCenter.default.post(name: Notification.Name("userSessionChanged"), object: nil)
         } catch {
             throw handleError(error)
         }
@@ -166,18 +232,42 @@ class AuthService: FirebaseService, AuthServiceProtocol {
     
     /// Fetches the current user's data from Firestore
     func fetchUser() async {
-        guard let uid = auth.currentUser?.uid else { return }
+        guard let uid = auth.currentUser?.uid else { 
+            // Clear state if no current user
+            self.currentUser.send(nil)
+            return 
+        }
         
         do {
             let snapshot = try await db.collection("users").document(uid).getDocument()
-            if let user = try? snapshot.data(as: User.self) {
+            
+            if snapshot.exists, let user = try? snapshot.data(as: User.self) {
                 currentUser.send(user)
                 
                 // Notify about user change
                 NotificationCenter.default.post(name: Notification.Name("userSessionChanged"), object: user)
+            } else {
+                // User document doesn't exist - this is an inconsistent state
+                print("⚠️ User auth record exists but Firestore document is missing for \(uid)")
+                
+                // Clear state
+                currentUser.send(nil)
+                
+                // Post notification for auth reset
+                NotificationCenter.default.post(
+                    name: Notification.Name("forceAuthReset"), 
+                    object: FirebaseError.authError("Account not found or has been deleted")
+                )
+                
+                // Try to clean up Firebase Auth state
+                try? await auth.currentUser?.delete()
+                try? auth.signOut()
             }
         } catch {
             print("DEBUG: Failed to fetch user with error: \(error.localizedDescription)")
+            
+            // Clear current user on any fetch error
+            currentUser.send(nil)
         }
     }
     
@@ -190,4 +280,9 @@ class AuthService: FirebaseService, AuthServiceProtocol {
         }
         #endif
     }
+}
+
+// Factory extension for creating instances
+extension AuthService {
+    static let shared = AuthService()
 } 

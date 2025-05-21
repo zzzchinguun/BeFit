@@ -28,16 +28,17 @@ struct Step1WelcomeView: View {
             }
             
             VStack(spacing: 15) {
-                Text("Таны хувийн фитнесс аялал")
+                Text("Таны хувийн фитнесс туслах")
                     .font(.title2)
                     .fontWeight(.bold)
                     .multilineTextAlignment(.center)
                 
-                Text("Бид таны зорилго болон одоогийн фитнесс түвшинд тохируулан хувийн төлөвлөгөө боловсруулахад тань тусална")
-                    .font(.body)
+                Text("Таны зорилго болон одоогийн фитнесс түвшинд тохируулан хувийн төлөвлөгөө боловсруулъя")
+                    .font(.footnote)
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
+                    .lineLimit(2)
             }
             
             // Feature List

@@ -18,13 +18,13 @@ struct SplashScreenView: View {
     var body: some View {
         ZStack {
             // Darker blue background
-            Color(.black.opacity(0.9))
+            Color(red: 0.17, green: 0.2, blue: 0.31)
                 .ignoresSafeArea()
             
             // Background gradient
             RadialGradient(
                 gradient: Gradient(colors: [
-                    Color.blue.opacity(0.2),
+                    Color.blue.opacity(0.3),
                     Color.blue.opacity(0.0)
                 ]),
                 center: .center,
@@ -105,8 +105,8 @@ struct SplashScreenView: View {
             }
             
             // Extend animation time before dismissal
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                withAnimation(.easeOut(duration: 0.5)) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                withAnimation(.easeOut(duration: 0.8)) {
                     self.isActive = false
                 }
             }

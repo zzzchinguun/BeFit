@@ -50,9 +50,11 @@ class AppInitializer {
             defaults.set(false, forKey: "isEnglishLanguage")
         }
         
-        // Setup dark mode preference if not already set
+        // Setup dark mode preference to follow system by default (nil)
         if defaults.object(forKey: "isDarkMode") == nil {
-            defaults.set(false, forKey: "isDarkMode")
+            // Don't set a value - this will make the app follow system settings
+            defaults.removeObject(forKey: "isDarkMode")
+            defaults.set(true, forKey: "darkModeInitialized") // Just mark that we've considered this setting
         }
         
         // Make sure we're not resetting user notification settings
@@ -102,15 +104,26 @@ class NotificationHandler: NSObject, UNUserNotificationCenterDelegate, Observabl
             
             // Now dispatch to MainActor for any UI operations
             await MainActor.run {
-                // For demonstration, we'll just schedule a local notification if there are no unread notifications
-                if notificationViewModel.unreadCount == 0 {
-                    // Schedule a weight reminder notification for 30 seconds from now (for testing)
-                    notificationViewModel.scheduleNotification(
-                        title: "Жин бүртгэх",
-                        body: "Өнөөдрийн жингээ бүртгээгүй байна!",
-                        timeInterval: 30,
-                        categoryIdentifier: "WEIGHT_CATEGORY"
-                    )
+                // Only schedule notifications if user hasn't been notified in the last 24 hours
+                let lastNotificationKey = "lastNotificationTimestamp"
+                let currentTime = Date().timeIntervalSince1970
+                let lastNotificationTime = UserDefaults.standard.double(forKey: lastNotificationKey)
+                
+                // Check if 24 hours have passed since the last notification
+                if (currentTime - lastNotificationTime) > 24 * 60 * 60 {
+                    // Only if there are no unread notifications
+                    if notificationViewModel.unreadCount == 0 {
+                        // Schedule a weight reminder notification for the next day
+                        notificationViewModel.scheduleNotification(
+                            title: "Жин бүртгэх",
+                            body: "Өнөөдрийн жингээ бүртгээгүй байна!",
+                            timeInterval: 24 * 60 * 60, // Schedule for 24 hours later
+                            categoryIdentifier: "WEIGHT_CATEGORY"
+                        )
+                        
+                        // Update the last notification timestamp
+                        UserDefaults.standard.set(currentTime, forKey: lastNotificationKey)
+                    }
                 }
             }
         } catch {
@@ -134,6 +147,7 @@ class NotificationHandler: NSObject, UNUserNotificationCenterDelegate, Observabl
         }
         
         return AppNotification(
+            id: UUID(),
             title: content.title,
             message: content.body,
             date: notification.date,
@@ -171,39 +185,36 @@ class NotificationHandler: NSObject, UNUserNotificationCenterDelegate, Observabl
     func userNotificationCenter(_ center: UNUserNotificationCenter, 
                                didReceive response: UNNotificationResponse, 
                                withCompletionHandler completionHandler: @escaping () -> Void) {
-        let userInfo = response.notification.request.content.userInfo
-        
-        // Handle notification based on category identifier
+        // Capture only the values we need before passing to async context
         let categoryIdentifier = response.notification.request.content.categoryIdentifier
+        let notification = response.notification
         
-        Task {
+        Task { @MainActor in
             do {
                 // Get the NotificationViewModel safely from any context
                 let notificationViewModel = try await ServiceContainer.shared.resolveOnMainActor(NotificationViewModel.self)
                 
-                await MainActor.run {
-                    // Add notification to our in-app list if needed
-                    let appNotification = self.createAppNotification(from: response.notification)
+                // Add notification to our in-app list if needed
+                let appNotification = self.createAppNotification(from: notification)
+                
+                // Only add if it doesn't already exist
+                if !notificationViewModel.notifications.contains(where: { $0.title == appNotification.title && $0.message == appNotification.message }) {
+                    notificationViewModel.notifications.insert(appNotification, at: 0)
+                    notificationViewModel.updateUnreadCount()
+                }
+                
+                // Handle specific actions
+                switch categoryIdentifier {
+                case "WORKOUT_CATEGORY":
+                    // Handle workout notification action
+                    print("User responded to workout notification")
                     
-                    // Only add if it doesn't already exist
-                    if !notificationViewModel.notifications.contains(where: { $0.title == appNotification.title && $0.message == appNotification.message }) {
-                        notificationViewModel.notifications.insert(appNotification, at: 0)
-                        notificationViewModel.updateUnreadCount()
-                    }
+                case "WEIGHT_CATEGORY":
+                    // Handle weight log notification action
+                    print("User responded to weight log notification")
                     
-                    // Handle specific actions
-                    switch categoryIdentifier {
-                    case "WORKOUT_CATEGORY":
-                        // Handle workout notification action
-                        print("User responded to workout notification")
-                        
-                    case "WEIGHT_CATEGORY":
-                        // Handle weight log notification action
-                        print("User responded to weight log notification")
-                        
-                    default:
-                        break
-                    }
+                default:
+                    break
                 }
             } catch {
                 print("Error accessing NotificationViewModel: \(error)")

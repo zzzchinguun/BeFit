@@ -267,13 +267,43 @@ struct ProfileView: View {
             }
             
             Section {
-                Toggle(isOn: $viewModel.isDarkMode) {
-                    SettingsRowView(
-                        imageName: viewModel.isDarkMode ? "moon.fill" : "sun.max.fill",
-                        title: viewModel.isEnglishLanguage ? "Dark Mode" : "Шөнийн горим",
-                        tintColor: viewModel.isDarkMode ? .purple : .orange,
-                        isDeleteButton: false
-                    )
+                // Dark mode picker instead of a simple toggle
+                Picker(selection: $viewModel.appearanceMode) {
+                    Text(viewModel.isEnglishLanguage ? "System" : "Системийн")
+                        .tag(0)
+                    Text(viewModel.isEnglishLanguage ? "Dark" : "Шөнийн")
+                        .tag(1)
+                    Text(viewModel.isEnglishLanguage ? "Light" : "Өдрийн")
+                        .tag(2)
+                } label: {
+                    HStack {
+                        Image(systemName: viewModel.appearanceMode == 0 ? "gearshape.fill" : (viewModel.isDarkMode ? "moon.fill" : "sun.max.fill"))
+                            .foregroundColor(viewModel.appearanceMode == 0 ? .gray : (viewModel.isDarkMode ? .purple : .orange))
+                            .imageScale(.medium)
+                            .frame(width: 24, height: 24)
+                        
+                        Text(viewModel.isEnglishLanguage ? "Appearance" : "Харагдах байдал")
+                    }
+                }
+                .onChange(of: viewModel.appearanceMode) { value in
+                    switch value {
+                    case 0:
+                        viewModel.useSystemTheme()
+                    case 1:
+                        if !viewModel.isDarkMode {
+                            viewModel.toggleDarkMode()
+                        } else {
+                            UserDefaults.standard.set(true, forKey: "isDarkMode")
+                        }
+                    case 2:
+                        if viewModel.isDarkMode {
+                            viewModel.toggleDarkMode()
+                        } else {
+                            UserDefaults.standard.set(false, forKey: "isDarkMode")
+                        }
+                    default:
+                        break
+                    }
                 }
                 
                 Toggle(isOn: $viewModel.isEnglishLanguage) {

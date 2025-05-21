@@ -7,31 +7,45 @@
 
 import SwiftUI
 
+// MARK: - Main Component
 struct MealRowView: View {
     let meal: Meal
     @ObservedObject var viewModel: MealViewModel
     var onDelete: () -> Void = {}
-    @State private var showDetails = false
+    
+    // Instead of per-row state, we'll use a reference to the parent's expanded state
+    @Binding var expandedMealId: String?
     @State private var showEditSheet = false
     
+    // Computed property to check if this meal is expanded
+    private var isExpanded: Bool {
+        guard let mealId = meal.id else { return false }
+        return expandedMealId == mealId
+    }
+    
     var body: some View {
-        VStack(spacing: 0) {
-            // Main row content
+        VStack(alignment: .leading, spacing: 0) {
+            // Header Row - Always visible
             Button(action: {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    showDetails.toggle()
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    // Toggle expansion
+                    if isExpanded {
+                        expandedMealId = nil
+                    } else if let id = meal.id {
+                        expandedMealId = id
+                    }
                 }
             }) {
                 HStack(spacing: 16) {
                     // Meal type icon
                     ZStack {
                         Circle()
-                            .fill(mealTypeColor(meal.mealType).opacity(0.2))
+                            .fill(mealTypeColor.opacity(0.2))
                             .frame(width: 50, height: 50)
                         
                         Image(systemName: meal.mealType.icon)
                             .font(.system(size: 22))
-                            .foregroundColor(mealTypeColor(meal.mealType))
+                            .foregroundColor(mealTypeColor)
                     }
                     
                     // Meal info
@@ -60,66 +74,29 @@ struct MealRowView: View {
                     }
                     
                     // Chevron indicator
-                    Image(systemName: showDetails ? "chevron.up" : "chevron.down")
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .foregroundColor(.secondary)
                         .font(.system(size: 14, weight: .bold))
-                        .animation(.spring(), value: showDetails)
                 }
                 .contentShape(Rectangle())
+                .padding(.vertical, 12)
             }
             .buttonStyle(PlainButtonStyle())
-            .padding(.horizontal, 0)
-            .padding(.vertical, 12)
             
-            // Expanded details
-            if showDetails {
-                VStack(spacing: 16) {
-                    Divider()
-                        
-                    
-                    // Macros details
-                    HStack(spacing: 12) {
-                        MacroDetail(value: meal.protein, name: "Уураг", color: .blue, icon: "p.circle.fill")
-                        MacroDetail(value: meal.carbs, name: "Нүүрс ус", color: .green, icon: "c.circle.fill")
-                        MacroDetail(value: meal.fat, name: "Өөх тос", color: .red, icon: "f.circle.fill")
-                    }
-                    
-                    HStack {
-                        Spacer()
-                        
-                        Button(action: {
-                            showEditSheet = true
-                        }) {
-                            Label("Засах", systemImage: "pencil")
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                                .padding(.vertical, 6)
-                                .padding(.horizontal, 12)
-                                .background(Color.blue.opacity(0.1))
-                                .cornerRadius(8)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .padding(.trailing, 8)
-                        
-                        Button(action: onDelete) {
-                            Label("Устгах", systemImage: "trash")
-                                .font(.caption)
-                                .foregroundColor(.red)
-                                .padding(.vertical, 6)
-                                .padding(.horizontal, 12)
-                                .background(Color.red.opacity(0.1))
-                                .cornerRadius(8)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    }
-                    .padding(.bottom, 8)
-                }
-                .transition(.asymmetric(
-                    insertion: .opacity.combined(with: .scale(scale: 0.95)),
-                    removal: .opacity.combined(with: .scale(scale: 0.95))
-                ))
+            // Expandable Details
+            if isExpanded {
+                ExpandedDetailsView(
+                    meal: meal,
+                    showEditSheet: $showEditSheet,
+                    onDelete: onDelete
+                )
+                .transition(.opacity)
             }
         }
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(10)
+        .padding(.horizontal, 1)
+        // Handle the edit sheet
         .sheet(isPresented: $showEditSheet) {
             NavigationView {
                 MealEditView(meal: meal, onSave: { updatedMeal in
@@ -144,8 +121,9 @@ struct MealRowView: View {
         }
     }
     
-    private func mealTypeColor(_ type: MealType) -> Color {
-        switch type {
+    // Computed properties for cleaner code
+    private var mealTypeColor: Color {
+        switch meal.mealType {
         case .breakfast: return .orange
         case .lunch: return .blue
         case .dinner: return .purple
@@ -160,6 +138,58 @@ struct MealRowView: View {
     }
 }
 
+// Separate view for expanded details to improve performance
+struct ExpandedDetailsView: View {
+    let meal: Meal
+    @Binding var showEditSheet: Bool
+    let onDelete: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            Divider()
+            
+            // Macros details in a separate scrollable area
+            HStack(spacing: 12) {
+                MacroDetail(value: meal.protein, name: "Уураг", color: .blue, icon: "p.circle.fill")
+                MacroDetail(value: meal.carbs, name: "Нүүрс ус", color: .green, icon: "c.circle.fill")
+                MacroDetail(value: meal.fat, name: "Өөх тос", color: .red, icon: "f.circle.fill")
+            }
+            
+            HStack {
+                Spacer()
+                
+                // Edit button
+                Button(action: { showEditSheet = true }) {
+                    Label("Засах", systemImage: "pencil")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 12)
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(8)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .padding(.trailing, 8)
+                
+                // Delete button
+                Button(action: onDelete) {
+                    Label("Устгах", systemImage: "trash")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 12)
+                        .background(Color.red.opacity(0.1))
+                        .cornerRadius(8)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            .padding(.bottom, 8)
+        }
+        .padding(.horizontal)
+    }
+}
+
+// Keep MacroDetail as a simple, stateless view
 struct MacroDetail: View {
     let value: Int
     let name: String
@@ -188,7 +218,17 @@ struct MacroDetail: View {
 }
 
 #Preview {
-    MealRowView(meal: Meal.MOCK_MEALS[0], viewModel: MealViewModel())
-        .padding()
-        .previewLayout(.sizeThatFits)
+    // For preview purposes, we need a static binding
+    let previewBinding = Binding<String?>(
+        get: { nil },
+        set: { _ in }
+    )
+    
+    return MealRowView(
+        meal: Meal.MOCK_MEALS[0], 
+        viewModel: MealViewModel(),
+        expandedMealId: previewBinding
+    )
+    .padding()
+    .previewLayout(.sizeThatFits)
 } 

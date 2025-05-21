@@ -67,6 +67,9 @@ struct MealEditView: View {
                         .foregroundColor(.blue)
                     TextField("Уураг (г)", text: $protein)
                         .keyboardType(.numberPad)
+                        .onChange(of: protein) { newValue in
+                            updateCalories()
+                        }
                 }
                 
                 HStack {
@@ -74,6 +77,9 @@ struct MealEditView: View {
                         .foregroundColor(.green)
                     TextField("Нүүрс ус (г)", text: $carbs)
                         .keyboardType(.numberPad)
+                        .onChange(of: carbs) { newValue in
+                            updateCalories()
+                        }
                 }
                 
                 HStack {
@@ -81,6 +87,9 @@ struct MealEditView: View {
                         .foregroundColor(.red)
                     TextField("Өөх тос (г)", text: $fat)
                         .keyboardType(.numberPad)
+                        .onChange(of: fat) { newValue in
+                            updateCalories()
+                        }
                 }
                 
                 HStack {
@@ -99,6 +108,19 @@ struct MealEditView: View {
                 .background(Color.blue)
                 .cornerRadius(10)
         }
+    }
+    
+    private func updateCalories() {
+        // Calculate calories based on macros using the standard conversion factors
+        // Protein: 4 calories per gram
+        // Carbs: 4 calories per gram
+        // Fat: 9 calories per gram
+        let proteinValue = Int(protein) ?? 0
+        let carbsValue = Int(carbs) ?? 0
+        let fatValue = Int(fat) ?? 0
+        
+        let calculatedCalories = (proteinValue * 4) + (carbsValue * 4) + (fatValue * 9)
+        calories = String(calculatedCalories)
     }
     
     private func saveChanges() {
