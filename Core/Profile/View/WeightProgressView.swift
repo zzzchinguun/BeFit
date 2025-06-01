@@ -41,6 +41,7 @@ enum WeightTimeRange: String, CaseIterable {
 
 struct WeightProgressView: View {
     @ObservedObject var viewModel: WeightLogViewModel
+    @StateObject private var languageManager = LanguageManager.shared
     @State private var selectedTimeRange = WeightTimeRange.threeMonths
     @State private var selectedView = 0 // 0 = Progress Chart, 1 = Calendar
     @State private var selectedDate: Date?
@@ -49,14 +50,14 @@ struct WeightProgressView: View {
     var body: some View {
         VStack(spacing: 16) {
             // Header
-            Text("Жингийн Ахиц")
+            Text(languageManager.isEnglishLanguage ? "Weight Progress" : "Жингийн Ахиц")
                 .font(.title)
                 .fontWeight(.bold)
             
             // View selector
-            Picker("Харах", selection: $selectedView) {
-                Text("Ахиц").tag(0)
-                Text("Хуанли").tag(1)
+            Picker(languageManager.isEnglishLanguage ? "View" : "Харах", selection: $selectedView) {
+                Text(languageManager.isEnglishLanguage ? "Progress" : "Ахиц").tag(0)
+                Text(languageManager.isEnglishLanguage ? "Calendar" : "Хуанли").tag(1)
             }
             .pickerStyle(.segmented)
             .padding(.horizontal)
@@ -71,6 +72,7 @@ struct WeightProgressView: View {
         }
         .padding(.horizontal)
         .preferredColorScheme(isDarkMode ? .dark : .light)
+        .navigationTitle(languageManager.isEnglishLanguage ? "Weight Progress" : "Жингийн Ахиц")
     }
     
     private var progressChartView: some View {
@@ -82,12 +84,12 @@ struct WeightProgressView: View {
                             .font(.system(size: 40))
                             .foregroundColor(.gray)
                         
-                        Text("Хангалттай өгөгдөл байхгүй")
+                        Text(languageManager.isEnglishLanguage ? "Insufficient Data" : "Хангалттай өгөгдөл байхгүй")
                             .font(.headline)
                         
-                        Text("Ахицаа харахын тулд дор хаяж хоёр жингийн бичлэг оруулна уу")
+                        Text(languageManager.isEnglishLanguage ? "Add at least two weight entries to view your progress" : "Ахицаа харахын тулд дор хаяж хоёр жингийн бичлэг оруулна уу")
                             .font(.subheadline)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                     }
@@ -134,7 +136,7 @@ struct WeightProgressView: View {
     
     private var weightChartView: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Жин")
+            Text(languageManager.isEnglishLanguage ? "Weight" : "Жин")
                 .font(.headline)
             
             if let filteredLogs = getFilteredLogs(), !filteredLogs.isEmpty {
@@ -177,12 +179,12 @@ struct WeightProgressView: View {
                     .font(.subheadline)
                     .foregroundColor(.gray)
                     .frame(maxWidth: .infinity, maxHeight: 180)
-                    .background(Color(.secondarySystemBackground))
+                    .background(Color(UIColor.secondarySystemBackground))
                     .cornerRadius(10)
             }
         }
         .padding(16)
-        .background(Color(.secondarySystemBackground))
+        .background(Color(UIColor.secondarySystemBackground))
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
         .padding(.horizontal)
@@ -299,7 +301,7 @@ struct WeightProgressView: View {
             let maxValue = weights.max() ?? 100
             let buffer = max((maxValue - minValue) * 0.1, 1)
             
-            return max(minValue - buffer, 0)...maxValue + buffer
+            return max(minValue - buffer, 0)...(maxValue + buffer)
         }
         return 0...100
     }
@@ -372,7 +374,7 @@ struct WeightLogDetailCard: View {
             }
         }
         .padding()
-        .background(Color(.secondarySystemBackground))
+        .background(Color(UIColor.secondarySystemBackground))
         .cornerRadius(12)
     }
     
@@ -458,7 +460,7 @@ struct WeightCalendarView: View {
             .padding(.horizontal)
         }
         .padding(16)
-        .background(Color(.secondarySystemBackground))
+        .background(Color(UIColor.secondarySystemBackground))
         .cornerRadius(12)
         .padding(.horizontal)
     }
@@ -557,7 +559,7 @@ struct WeightStatBox: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(colorScheme == .dark ? Color(.secondarySystemBackground) : Color(.systemBackground))
+        .background(colorScheme == .dark ? Color(UIColor.secondarySystemBackground) : Color(UIColor.systemBackground))
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
     }

@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import FirebaseFirestore
 
 protocol NutritionDataServiceProtocol {
     var foods: CurrentValueSubject<[NutritionData], Never> { get }
@@ -94,56 +95,61 @@ class NutritionDataService: NutritionDataServiceProtocol {
         // Load verified meals and user's unverified meals from Firebase
         Task {
             do {
-                // Fetch verified meals (approved meals from all users)
+                // Load verified meals from VerifiedMealService
                 await verifiedMealService.fetchVerifiedMeals()
+                let verifiedFoods = verifiedMealService.verifiedMeals.value
                 
-                // Fetch current user's unverified meals so they can see their own pending submissions
-                await fetchUserUnverifiedMeals()
-                
-                // Ensure UI updates happen on main thread
                 await MainActor.run {
-                    // Add ALL verified meals to the list (these are approved meals from all users)
-                    let verifiedMeals = self.verifiedMealService.verifiedMeals.value
-                    print("✅ Loaded \(verifiedMeals.count) verified meals")
-                    allFoods.append(contentsOf: verifiedMeals)
-                    
-                    // Add ONLY current user's own unverified meals to the list
-                    // This way users can see their own pending submissions but not other users' pending submissions
-                    let userUnverifiedMeals = self.userUnverifiedMeals.value
-                    print("✅ Loaded \(userUnverifiedMeals.count) user's own unverified meals")
-                    let userUnverifiedAsNutritionData = userUnverifiedMeals.map { $0.toNutritionData() }
-                    allFoods.append(contentsOf: userUnverifiedAsNutritionData)
-                    
-                    // Load any custom foods from UserDefaults (legacy support)
-                    if let data = UserDefaults.standard.data(forKey: self.customFoodsKey),
-                       let customFoods = try? JSONDecoder().decode([NutritionData].self, from: data) {
-                        // Add custom foods to the list
-                        print("✅ Loaded \(customFoods.count) custom foods from UserDefaults")
-                        allFoods.append(contentsOf: customFoods)
-                    }
-                    
-                    // Remove duplicates based on name and barcode combination
-                    allFoods = self.removeDuplicateFoods(allFoods)
-                    
-                    // Sort foods alphabetically
-                    allFoods.sort { $0.name < $1.name }
-                    
-                    print("✅ Total foods loaded after deduplication: \(allFoods.count)")
-                    
-                    // Update publishers on main thread
-                    self.foods.send(allFoods)
-                    self.filteredFoods.send(allFoods)
-                    
-                    self.isLoading.send(false)
-                    print("✅ Foods loading completed")
+                    allFoods.append(contentsOf: verifiedFoods)
+                    print("✅ Loaded \(verifiedFoods.count) verified meals")
                 }
-            } catch {
-                // Ensure UI updates happen on main thread even on error
+                
+                // Load user's unverified meals so they can see their pending submissions
+                await fetchUserUnverifiedMeals()
+                let userUnverifiedMeals = self.userUnverifiedMeals.value
+                let userUnverifiedFoods = userUnverifiedMeals.map { $0.toNutritionData() }
+                
                 await MainActor.run {
-                    print("❌ Error loading foods: \(error.localizedDescription)")
-                    // Even if Firebase fails, still show sample foods
-                    self.foods.send(allFoods)
-                    self.filteredFoods.send(allFoods)
+                    allFoods.append(contentsOf: userUnverifiedFoods)
+                    print("✅ Loaded \(userUnverifiedMeals.count) user's own unverified meals")
+                }
+                
+                // Load any custom foods saved locally (legacy support)
+                if let data = UserDefaults.standard.data(forKey: customFoodsKey),
+                   let customFoods = try? JSONDecoder().decode([NutritionData].self, from: data) {
+                    await MainActor.run {
+                        allFoods.append(contentsOf: customFoods)
+                        print("✅ Loaded \(customFoods.count) custom foods from UserDefaults")
+                    }
+                }
+                
+                // Remove duplicates and update on main thread
+                await MainActor.run {
+                    let uniqueFoods = self.removeDuplicateFoods(allFoods)
+                    print("✅ Total foods loaded after deduplication: \(uniqueFoods.count)")
+                    
+                    // Update the published foods
+                    self.foods.send(uniqueFoods)
+                    
+                    // Apply initial filters
+                    self.filterFoods(category: self.selectedCategory.value, searchText: self.searchQuery.value)
+                    
+                    print("✅ Foods loading completed")
+                    
+                    // Clear loading state
+                    self.isLoading.send(false)
+                }
+                
+            } catch {
+                print("❌ Error loading foods: \(error.localizedDescription)")
+                
+                await MainActor.run {
+                    // Even if Firebase fails, we still have sample foods
+                    let uniqueFoods = self.removeDuplicateFoods(allFoods)
+                    self.foods.send(uniqueFoods)
+                    self.filterFoods(category: self.selectedCategory.value, searchText: self.searchQuery.value)
+                    
+                    // Clear loading state
                     self.isLoading.send(false)
                 }
             }
@@ -342,25 +348,32 @@ class NutritionDataService: NutritionDataServiceProtocol {
     private func removeDuplicateFoods(_ foods: [NutritionData]) -> [NutritionData] {
         var uniqueFoods: [NutritionData] = []
         var seenIdentifiers: Set<String> = []
+        var duplicateCount = 0
         
         for food in foods {
             // Create a unique identifier based on name and barcode
             let identifier: String
             if let barcode = food.barcode, !barcode.isEmpty {
-                identifier = "\(food.name.lowercased())_\(barcode)"
+                identifier = "\(food.name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines))_\(barcode)"
             } else {
-                identifier = food.name.lowercased()
+                identifier = food.name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
             }
             
             if !seenIdentifiers.contains(identifier) {
                 seenIdentifiers.insert(identifier)
                 uniqueFoods.append(food)
             } else {
-                print("🔄 Removing duplicate food: \(food.name)")
+                duplicateCount += 1
+                // Only log every 5th duplicate to reduce console spam
+                if duplicateCount % 5 == 0 {
+                    print("🔄 Removing duplicate food: \(food.name)")
+                }
             }
         }
         
-        print("✅ Removed \(foods.count - uniqueFoods.count) duplicate foods")
+        if duplicateCount > 0 {
+            print("✅ Removed \(duplicateCount) duplicate foods")
+        }
         return uniqueFoods
     }
 }

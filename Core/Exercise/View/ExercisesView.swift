@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ExercisesView: View {
     @StateObject private var viewModel = ExerciseViewModel()
+    @StateObject private var languageManager = LanguageManager.shared
     @State private var showingAddCustomExercise = false
     @State private var searchText = ""
     @State private var selectedExercise: Exercise?
@@ -22,8 +23,8 @@ struct ExercisesView: View {
             VStack(spacing: 0) {
                 // Modern header with gradient
                 VStack(spacing: 16) {
-                    // Enhanced search bar
-                    ModernSearchBar(text: $searchText, placeholder: "Дасгал хайх...")
+                    // Enhanced search bar (without barcode scanner for exercises)
+                    ExerciseSearchBar(text: $searchText, placeholder: "Дасгал хайх...")
                         .onChange(of: searchText) { _, newValue in
                             viewModel.searchText = newValue
                             viewModel.filterExercises()
@@ -38,7 +39,7 @@ struct ExercisesView: View {
                             }
                             
                             ForEach(ExerciseCategory.allCases) { category in
-                                ModernCategoryPill(title: category.rawValue, isSelected: viewModel.selectedCategory == category) {
+                                ModernCategoryPill(title: category.localizedName(isEnglish: languageManager.isExerciseEnglishLanguage), isSelected: viewModel.selectedCategory == category) {
                                     viewModel.selectedCategory = category
                                     viewModel.filterExercises()
                                 }
@@ -52,7 +53,8 @@ struct ExercisesView: View {
                         ExerciseStatsRow(
                             totalExercises: viewModel.exercises.count,
                             customExercises: viewModel.exercises.filter { $0.isCustom }.count,
-                            filteredCount: viewModel.filteredExercises.count
+                            filteredCount: viewModel.filteredExercises.count,
+                            isEnglishLanguage: languageManager.isEnglishLanguage
                         )
                         .padding(.horizontal, 20)
                     }
@@ -80,7 +82,7 @@ struct ExercisesView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Text("Дасгалууд")
+                    Text(languageManager.isEnglishLanguage ? "Exercises" : "Дасгалууд")
                         .font(.title2)
                         .fontWeight(.bold)
                 }
@@ -187,7 +189,9 @@ struct ExercisesView: View {
                         onDelete: exercise.isCustom ? {
                             exerciseToDelete = exercise
                             showingDeleteAlert = true
-                        } : nil
+                        } : nil,
+                        isEnglishLanguage: languageManager.isEnglishLanguage,
+                        isExerciseEnglishLanguage: languageManager.isExerciseEnglishLanguage
                     )
                 }
             }
@@ -207,14 +211,16 @@ struct ExercisesView: View {
                 .foregroundColor(.gray.opacity(0.6))
             
             VStack(spacing: 8) {
-                Text(searchText.isEmpty ? "Дасгал байхгүй" : "Хайлт олдсонгүй")
+                Text(searchText.isEmpty ? 
+                     (languageManager.isEnglishLanguage ? "No Exercises" : "Дасгал байхгүй") : 
+                     (languageManager.isEnglishLanguage ? "No Search Results" : "Хайлт олдсонгүй"))
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
                 
                 Text(searchText.isEmpty ? 
-                     "Өөрийн дасгал нэмэхээр эхэлнэ үү" : 
-                     "'\(searchText)' гэсэн хайлтад тохирох дасгал олдсонгүй")
+                     (languageManager.isEnglishLanguage ? "Start by adding your own exercise" : "Өөрийн дасгал нэмэхээр эхэлнэ үү") : 
+                     (languageManager.isEnglishLanguage ? "No exercises found matching '\(searchText)'" : "'\(searchText)' гэсэн хайлтад тохирох дасгал олдсонгүй"))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -230,7 +236,9 @@ struct ExercisesView: View {
                     viewModel.filterExercises()
                 }
             } label: {
-                Text(searchText.isEmpty ? "Өөрийн дасгал нэмэх" : "Хайлт цэвэрлэх")
+                Text(searchText.isEmpty ? 
+                     (languageManager.isEnglishLanguage ? "Add Custom Exercise" : "Өөрийн дасгал нэмэх") : 
+                     (languageManager.isEnglishLanguage ? "Clear Search" : "Хайлт цэвэрлэх"))
                     .font(.headline)
                     .foregroundColor(.white)
                     .padding(.horizontal, 24)
@@ -323,12 +331,13 @@ struct ExerciseStatsRow: View {
     let totalExercises: Int
     let customExercises: Int
     let filteredCount: Int
+    let isEnglishLanguage: Bool
     
     var body: some View {
         HStack(spacing: 16) {
-            StatCard(title: "Нийт", value: "\(totalExercises)", icon: "list.bullet", color: .blue)
-            StatCard(title: "Өөрийн", value: "\(customExercises)", icon: "plus.circle", color: .green)
-            StatCard(title: "Харагдаж байгаа", value: "\(filteredCount)", icon: "eye", color: .orange)
+            StatCard(title: isEnglishLanguage ? "Total" : "Нийт", value: "\(totalExercises)", icon: "list.bullet", color: .blue)
+            StatCard(title: isEnglishLanguage ? "Custom" : "Өөрийн", value: "\(customExercises)", icon: "plus.circle", color: .green)
+            StatCard(title: isEnglishLanguage ? "Showing" : "Харагдаж байгаа", value: "\(filteredCount)", icon: "eye", color: .orange)
             
             Spacer()
         }
@@ -339,6 +348,8 @@ struct ModernExerciseCard: View {
     let exercise: Exercise
     let onTap: () -> Void
     let onDelete: (() -> Void)?
+    let isEnglishLanguage: Bool
+    let isExerciseEnglishLanguage: Bool
     
     var body: some View {
         Button(action: onTap) {
@@ -355,18 +366,18 @@ struct ModernExerciseCard: View {
                 
                 // Exercise info
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(exercise.name)
+                    Text(exercise.localizedName(isEnglish: isExerciseEnglishLanguage))
                         .font(.headline)
                         .foregroundColor(.primary)
                         .multilineTextAlignment(.leading)
                     
                     HStack(spacing: 8) {
-                        Text(exercise.category.rawValue)
+                        Text(exercise.category.localizedName(isEnglish: isExerciseEnglishLanguage))
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                         
                         if exercise.isCustom {
-                            Text("Өөрийн")
+                            Text(isEnglishLanguage ? "Custom" : "Өөрийн")
                                 .font(.caption)
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 8)
@@ -428,6 +439,47 @@ struct ModernExerciseCard: View {
         case .core: return .red
         case .custom: return .pink
         }
+    }
+}
+
+// MARK: - Exercise-Specific Search Bar (No Barcode Scanner)
+
+struct ExerciseSearchBar: View {
+    @Binding var text: String
+    var placeholder: String
+    @FocusState private var isSearchFocused: Bool
+    @AppStorage("isDarkMode") private var isDarkMode = false
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(isSearchFocused ? Color.primaryApp : .gray)
+                .font(.system(size: 18, weight: .medium))
+                
+            TextField(placeholder, text: $text)
+                .font(.body)
+                .focused($isSearchFocused)
+                .autocapitalization(.none)
+                .disableAutocorrection(true)
+                
+            if !text.isEmpty {
+                Button(action: {
+                    text = ""
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.gray)
+                        .font(.system(size: 16))
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(isDarkMode ? Color.neutralBackgroundDark.opacity(0.8) : Color.white)
+                .stroke(isSearchFocused ? Color.primaryApp.opacity(0.5) : Color.primaryApp.opacity(0.3), lineWidth: 1)
+        )
+        .padding(.horizontal, 20)
     }
 }
 

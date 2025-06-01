@@ -19,7 +19,6 @@ class ProfileViewModel: ObservableObject {
     @Published var needsOnboarding: Bool = !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
     @Published var selectedTab: Int = 0
     @Published var navigationPath = NavigationPath()
-    @Published var isEnglishLanguage: Bool = UserDefaults.standard.bool(forKey: "isEnglishLanguage")
     
     // MARK: - Services
     
@@ -30,13 +29,6 @@ class ProfileViewModel: ObservableObject {
     
     init(authService: AuthServiceProtocol = ServiceContainer.shared.authService) {
         self.authService = authService
-        
-        // Initialize language setting if it hasn't been set yet
-        if !UserDefaults.standard.bool(forKey: "languageInitialized") {
-            // Default to false (Mongolian) if not set
-            UserDefaults.standard.set(false, forKey: "isEnglishLanguage")
-            UserDefaults.standard.set(true, forKey: "languageInitialized")
-        }
         
         // Update the dark mode value based on system settings if needed
         if UserDefaults.standard.object(forKey: "isDarkMode") == nil {
@@ -82,12 +74,6 @@ class ProfileViewModel: ObservableObject {
         UserDefaults.standard.removeObject(forKey: "isDarkMode")
         isDarkMode = isSystemInDarkMode()
         appearanceMode = 0 // System mode
-    }
-    
-    /// Toggle language setting
-    func toggleLanguage() {
-        isEnglishLanguage.toggle()
-        UserDefaults.standard.set(isEnglishLanguage, forKey: "isEnglishLanguage")
     }
     
     /// Restart onboarding manually
@@ -164,7 +150,8 @@ class ProfileViewModel: ObservableObject {
     
     /// Get tab title
     func tabTitle(for index: Int) -> String {
-        if isEnglishLanguage {
+        let languageManager = LanguageManager.shared
+        if languageManager.isEnglishLanguage {
             switch index {
             case 0: return "Dashboard"
             case 1: return "Exercises"

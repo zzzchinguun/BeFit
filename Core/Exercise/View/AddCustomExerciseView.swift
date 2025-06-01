@@ -8,20 +8,19 @@
 import SwiftUI
 
 struct ModernAddCustomExerciseView: View {
+    @Environment(\.dismiss) private var dismiss
     @ObservedObject var viewModel: ExerciseViewModel
-    
+    @StateObject private var languageManager = LanguageManager.shared
     @State private var exerciseName = ""
-    @State private var selectedCategory: ExerciseCategory = .upperBodyPush
     @State private var exerciseDescription = ""
     @State private var exerciseInstructions = ""
-    @State private var showingAlert = false
-    @State private var alertMessage = ""
-    @State private var isSaving = false
+    @State private var selectedCategory: ExerciseCategory = .compound
     @State private var nameIsFocused = false
     @State private var descriptionIsFocused = false
     @State private var instructionsIsFocused = false
-    
-    @Environment(\.dismiss) private var dismiss
+    @State private var isSaving = false
+    @State private var showingAlert = false
+    @State private var alertMessage = ""
     @AppStorage("isDarkMode") private var isDarkMode = false
     
     private var isFormValid: Bool {
@@ -39,12 +38,12 @@ struct ModernAddCustomExerciseView: View {
                             .foregroundColor(.blue)
                         
                         VStack(spacing: 8) {
-                            Text("Өөрийн дасгал нэмэх")
+                            Text(languageManager.isEnglishLanguage ? "Add Custom Exercise" : "Өөрийн дасгал нэмэх")
                                 .font(.title2)
                                 .fontWeight(.bold)
                                 .foregroundColor(.primary)
                             
-                            Text("Дасгалын дэлгэрэнгүй мэдээллийг оруулаад өөрийн дасгалын санд нэмээрэй")
+                            Text(languageManager.isEnglishLanguage ? "Enter exercise details to add to your custom exercise library" : "Дасгалын дэлгэрэнгүй мэдээллийг оруулаад өөрийн дасгалын санд нэмээрэй")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
@@ -56,35 +55,35 @@ struct ModernAddCustomExerciseView: View {
                     // Form
                     VStack(spacing: 24) {
                         // Exercise name
-                        ModernFormSection(title: "Дасгалын нэр", isRequired: true) {
+                        ModernFormSection(title: languageManager.isEnglishLanguage ? "Exercise Name" : "Дасгалын нэр", isRequired: true) {
                             ModernTextField(
                                 text: $exerciseName,
-                                placeholder: "Дасгалын нэр оруулах...",
+                                placeholder: languageManager.isEnglishLanguage ? "Enter exercise name..." : "Дасгалын нэр оруулах...",
                                 isFocused: $nameIsFocused,
                                 icon: "dumbbell.fill"
                             )
                         }
                         
                         // Category selection
-                        ModernFormSection(title: "Ангилал", isRequired: true) {
+                        ModernFormSection(title: languageManager.isEnglishLanguage ? "Category" : "Ангилал", isRequired: true) {
                             CategorySelectionView(selectedCategory: $selectedCategory)
                         }
                         
                         // Description (optional)
-                        ModernFormSection(title: "Тайлбар", isRequired: false) {
+                        ModernFormSection(title: languageManager.isEnglishLanguage ? "Description" : "Тайлбар", isRequired: false) {
                             ModernTextEditor(
                                 text: $exerciseDescription,
-                                placeholder: "Дасгалын товч тайлбар...",
+                                placeholder: languageManager.isEnglishLanguage ? "Brief exercise description..." : "Дасгалын товч тайлбар...",
                                 isFocused: $descriptionIsFocused,
                                 minHeight: 80
                             )
                         }
                         
                         // Instructions (optional)
-                        ModernFormSection(title: "Заавар", isRequired: false) {
+                        ModernFormSection(title: languageManager.isEnglishLanguage ? "Instructions" : "Заавар", isRequired: false) {
                             ModernTextEditor(
                                 text: $exerciseInstructions,
-                                placeholder: "Дасгал хийх заавар...",
+                                placeholder: languageManager.isEnglishLanguage ? "Exercise instructions..." : "Дасгал хийх заавар...",
                                 isFocused: $instructionsIsFocused,
                                 minHeight: 120
                             )
@@ -105,7 +104,7 @@ struct ModernAddCustomExerciseView: View {
                                         .font(.system(size: 20, weight: .medium))
                                 }
                                 
-                                Text(isSaving ? "Хадгалж байна..." : "Дасгал хадгалах")
+                                Text(isSaving ? (languageManager.isEnglishLanguage ? "Saving..." : "Хадгалж байна...") : (languageManager.isEnglishLanguage ? "Save Exercise" : "Дасгал хадгалах"))
                                     .font(.headline)
                                     .fontWeight(.semibold)
                             }
@@ -129,7 +128,7 @@ struct ModernAddCustomExerciseView: View {
                         .scaleEffect(isFormValid ? 1.0 : 0.95)
                         .animation(.easeInOut(duration: 0.2), value: isFormValid)
                         
-                        Text("Барилгагүй талбарууд заавал биш")
+                        Text(languageManager.isEnglishLanguage ? "Required fields are marked with *" : "Барилгагүй талбарууд заавал биш")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -142,14 +141,14 @@ struct ModernAddCustomExerciseView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Цуцлах") {
+                    Button(languageManager.isEnglishLanguage ? "Cancel" : "Цуцлах") {
                         dismiss()
                     }
                     .foregroundColor(.blue)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Хадгалах") {
+                    Button(languageManager.isEnglishLanguage ? "Save" : "Хадгалах") {
                         saveExercise()
                     }
                     .foregroundColor(isFormValid ? .blue : .gray)
@@ -171,14 +170,14 @@ struct ModernAddCustomExerciseView: View {
         let trimmedName = exerciseName.trimmingCharacters(in: .whitespacesAndNewlines)
         
         guard !trimmedName.isEmpty else {
-            alertMessage = "Дасгалын зөв нэр оруулна уу."
+            alertMessage = languageManager.isEnglishLanguage ? "Please enter a valid exercise name." : "Дасгалын зөв нэр оруулна уу."
             showingAlert = true
             return
         }
         
         // Check for duplicate name
         if viewModel.exercises.contains(where: { $0.name.lowercased() == trimmedName.lowercased() }) {
-            alertMessage = "Ийм нэртэй дасгал өмнө бүртгэгдсэн байна."
+            alertMessage = languageManager.isEnglishLanguage ? "An exercise with this name already exists." : "Ийм нэртэй дасгал өмнө бүртгэгдсэн байна."
             showingAlert = true
             return
         }
@@ -190,9 +189,9 @@ struct ModernAddCustomExerciseView: View {
                 isSaving = false
                 
                 if success {
-                    alertMessage = "Дасгал амжилттай нэмэгдлээ!"
+                    alertMessage = languageManager.isEnglishLanguage ? "Exercise added successfully!" : "Дасгал амжилттай нэмэгдлээ!"
                 } else {
-                    alertMessage = "Дасгал нэмэхэд алдаа гарлаа. Дахин оролдоно уу."
+                    alertMessage = languageManager.isEnglishLanguage ? "Failed to add exercise. Please try again." : "Дасгал нэмэхэд алдаа гарлаа. Дахин оролдоно уу."
                 }
                 
                 showingAlert = true
@@ -373,11 +372,11 @@ struct CategoryOptionCard: View {
     
     private func categoryIcon(for category: ExerciseCategory) -> String {
         switch category {
-        case .compound: return "dumbbell.fill"
-        case .lowerBody: return "figure.walk"
-        case .upperBodyPush: return "arrow.up.circle.fill"
-        case .upperBodyPull: return "arrow.down.circle.fill"
-        case .core: return "circle.grid.cross.fill"
+        case .compound: return "figure.strengthtraining.traditional"
+        case .lowerBody: return "figure.highintensity.intervaltraining"
+        case .upperBodyPush: return "dumbbell.fill"
+        case .upperBodyPull: return "figure.play"
+        case .core: return "figure.core.training"
         case .custom: return "plus.circle.fill"
         }
     }

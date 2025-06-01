@@ -15,6 +15,7 @@ struct ProfileView: View {
     @StateObject private var viewModel = ViewModelFactory.createProfileViewModel()
     @StateObject private var weightLogViewModel = ViewModelFactory.createWeightLogViewModel()
     @StateObject private var notificationViewModel = ViewModelFactory.createNotificationViewModel()
+    @StateObject private var languageManager = LanguageManager.shared
     @State private var showWeightLogSheet = false
     @State private var showNotificationsSheet = false
     @State private var showMealVerificationSheet = false
@@ -141,9 +142,10 @@ struct ProfileView: View {
                     }
                     
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Сайн уу,")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
+                        Text(languageManager.isEnglishLanguage ? "Hello," : "Сайн уу,")
+                            .font(.title2)
+                            .fontWeight(.medium)
+                            .foregroundColor(.secondary)
                         
                         Text(user.firstName)
                             .font(.headline)
@@ -215,18 +217,19 @@ struct ProfileView: View {
     private func dashboardView(user: User) -> some View {
         ScrollView{
             VStack(spacing: 20) {
-                Text("Хянах самбар")
-                    .font(.title)
+                Text(languageManager.isEnglishLanguage ? "Dashboard" : "Хянах самбар")
+                    .font(.largeTitle)
                     .fontWeight(.bold)
+                    .foregroundColor(.primary)
                 
                 LazyVGrid(columns: [
                     GridItem(.flexible()),
                     GridItem(.flexible())
                 ], spacing: 20) {
-                    metricCard(title: "Одоогийн жин", value: "\(Int(user.weight ?? 0))кг", icon: "scalemass.fill")
-                    metricCard(title: "Зорилтот жин", value: "\(Int(user.goalWeight ?? 0))кг", icon: "target")
-                    metricCard(title: "Үлдсэн өдөр", value: "\(user.daysToComplete ?? 0)", icon: "calendar")
-                    metricCard(title: "Өдрийн илчлэг", value: "\(Int(user.tdee ?? 0))", icon: "flame.fill")
+                    metricCard(title: languageManager.isEnglishLanguage ? "Current Weight" : "Одоогийн жин", value: "\(Int(user.weight ?? 0))кг", icon: "scalemass.fill")
+                    metricCard(title: languageManager.isEnglishLanguage ? "Target Weight" : "Зорилтот жин", value: "\(Int(user.goalWeight ?? 0))кг", icon: "target")
+                    metricCard(title: languageManager.isEnglishLanguage ? "Days Remaining" : "Үлдсэн өдөр", value: "\(user.daysToComplete ?? 0)", icon: "calendar")
+                    metricCard(title: languageManager.isEnglishLanguage ? "Daily Calories" : "Өдрийн илчлэг", value: "\(Int(user.tdee ?? 0))", icon: "flame.fill")
                 }
                 .padding(.horizontal)
                 
@@ -294,13 +297,13 @@ struct ProfileView: View {
             
             // Super Admin Section (only for super admins)
             if MealVerificationService.shared.isUserSuperAdmin(user) {
-                Section(viewModel.isEnglishLanguage ? "Super Admin" : "Супер админ") {
+                Section(languageManager.isEnglishLanguage ? "Super Admin" : "Супер админ") {
                     Button {
                         showMealVerificationSheet = true
                     } label: {
                         SettingsRowView(
                             imageName: "checkmark.shield.fill",
-                            title: viewModel.isEnglishLanguage ? "Verify Meals" : "Хоол батлах",
+                            title: languageManager.isEnglishLanguage ? "Verify Meals" : "Хоол батлах",
                             tintColor: .orange,
                             isDeleteButton: false
                         )
@@ -311,11 +314,11 @@ struct ProfileView: View {
             Section {
                 // Dark mode picker instead of a simple toggle
                 Picker(selection: $viewModel.appearanceMode) {
-                    Text(viewModel.isEnglishLanguage ? "System" : "Системийн")
+                    Text(languageManager.isEnglishLanguage ? "System" : "Системийн")
                         .tag(0)
-                    Text(viewModel.isEnglishLanguage ? "Dark" : "Шөнийн")
+                    Text(languageManager.isEnglishLanguage ? "Dark" : "Шөнийн")
                         .tag(1)
-                    Text(viewModel.isEnglishLanguage ? "Light" : "Өдрийн")
+                    Text(languageManager.isEnglishLanguage ? "Light" : "Өдрийн")
                         .tag(2)
                 } label: {
                     HStack {
@@ -324,7 +327,7 @@ struct ProfileView: View {
                             .imageScale(.medium)
                             .frame(width: 24, height: 24)
                         
-                        Text(viewModel.isEnglishLanguage ? "Appearance" : "Харагдах байдал")
+                        Text(languageManager.isEnglishLanguage ? "Appearance" : "Харагдах байдал")
                     }
                 }
                 .onChange(of: viewModel.appearanceMode) { value in
@@ -348,11 +351,20 @@ struct ProfileView: View {
                     }
                 }
                 
-                Toggle(isOn: $viewModel.isEnglishLanguage) {
+                Toggle(isOn: $languageManager.isEnglishLanguage) {
                     SettingsRowView(
                         imageName: "globe",
-                        title: viewModel.isEnglishLanguage ? "English(Beta)" : "Монгол(Beta)",
+                        title: languageManager.isEnglishLanguage ? "English (Beta)" : "Монгол (Beta)",
                         tintColor: .blue,
+                        isDeleteButton: false
+                    )
+                }
+                
+                Toggle(isOn: $languageManager.isExerciseEnglishLanguage) {
+                    SettingsRowView(
+                        imageName: "dumbbell.fill",
+                        title: languageManager.isEnglishLanguage ? (languageManager.isExerciseEnglishLanguage ? "Exercise Names in English" : "Exercise Names in Mongolian") : (languageManager.isExerciseEnglishLanguage ? "Дасгалын нэр англиар" : "Дасгалын нэр монголоор"),
+                        tintColor: .green,
                         isDeleteButton: false
                     )
                 }
@@ -362,18 +374,18 @@ struct ProfileView: View {
                 } label: {
                     SettingsRowView(
                         imageName: "arrow.triangle.2.circlepath",
-                        title: viewModel.isEnglishLanguage ? "Restart body measurement" : "Биеийн үзүүлэлт шинэчлэх",
+                        title: languageManager.isEnglishLanguage ? "Restart body measurement" : "Биеийн үзүүлэлт шинэчлэх",
                         tintColor: .green,
                         isDeleteButton: false
                     )
                 }
             }
             
-            Section(viewModel.isEnglishLanguage ? "General" : "Ерөнхий") {
+            Section(languageManager.isEnglishLanguage ? "General" : "Ерөнхий") {
                 HStack {
                     SettingsRowView(
                         imageName: "gear",
-                        title: viewModel.isEnglishLanguage ? "Version" : "Хувилбар",
+                        title: languageManager.isEnglishLanguage ? "Version" : "Хувилбар",
                         tintColor: Color(.systemGray),
                         isDeleteButton: false
                     )
@@ -385,7 +397,7 @@ struct ProfileView: View {
                 }
             }
             
-            Section(viewModel.isEnglishLanguage ? "Account" : "Бүртгэл") {
+            Section(languageManager.isEnglishLanguage ? "Account" : "Бүртгэл") {
                 Button {
                     Task {
                         authViewModel.signOut()
@@ -393,7 +405,7 @@ struct ProfileView: View {
                 } label: {
                     SettingsRowView(
                         imageName: "arrow.left.circle.fill",
-                        title: viewModel.isEnglishLanguage ? "Log Out" : "Гарах",
+                        title: languageManager.isEnglishLanguage ? "Log Out" : "Гарах",
                         tintColor: Color(.systemGray),
                         isDeleteButton: false
                     )
@@ -404,21 +416,21 @@ struct ProfileView: View {
                 } label: {
                     SettingsRowView(
                         imageName: "minus.circle.fill",
-                        title: viewModel.isEnglishLanguage ? "Delete Account" : "Устгах",
+                        title: languageManager.isEnglishLanguage ? "Delete Account" : "Устгах",
                         tintColor: Color(.systemRed),
                         isDeleteButton: true
                     )
                     
                 }
-                .alert(viewModel.isEnglishLanguage ? "Delete Account" : "Бүртгэл устгах", isPresented: $viewModel.showDeleteConfirmation) {
-                    Button(viewModel.isEnglishLanguage ? "Cancel" : "Цуцлах", role: .cancel) { }
-                    Button(viewModel.isEnglishLanguage ? "Delete" : "Устгах", role: .destructive) {
+                .alert(languageManager.isEnglishLanguage ? "Delete Account" : "Бүртгэл устгах", isPresented: $viewModel.showDeleteConfirmation) {
+                    Button(languageManager.isEnglishLanguage ? "Cancel" : "Цуцлах", role: .cancel) { }
+                    Button(languageManager.isEnglishLanguage ? "Delete" : "Устгах", role: .destructive) {
                         Task {
                             try? await authViewModel.deleteAccount()
                         }
                     }
                 } message: {
-                    Text(viewModel.isEnglishLanguage ? 
+                    Text(languageManager.isEnglishLanguage ? 
                          "Are you sure you want to delete your account? This action cannot be undone." : 
                          "Та бүртгэлээ устгахдаа итгэлтэй байна уу? Энэ үйлдлийг буцаах боломжгүй.")
                 }

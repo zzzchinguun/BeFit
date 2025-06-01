@@ -8,7 +8,6 @@
 import SwiftUI
 import Foundation
 import CoreImage
-import UIKit
 
 // MARK: - Global Helper Functions
 
@@ -35,7 +34,6 @@ struct NutritionDatabaseView: View {
     @State private var selectedFood: NutritionData?
     @State private var searchText = ""
     @State private var hasLoaded = false // Add flag to prevent multiple loads
-    @State private var pendingApprovalCache: [String: Bool] = [:] // Cache for pending approval results
     @AppStorage("isDarkMode") private var isDarkMode = false
     @AppStorage("isEnglishLanguage") private var isEnglishLanguage = false
     
@@ -114,8 +112,6 @@ struct NutritionDatabaseView: View {
                         // Only show reload button if already loaded to prevent initial double load
                         if hasLoaded {
                             Button(action: {
-                                // Clear cache before reloading
-                                pendingApprovalCache.removeAll()
                                 hasLoaded = false
                                 viewModel.loadFoods()
                             }) {
@@ -146,8 +142,6 @@ struct NutritionDatabaseView: View {
                     }
             }
             .refreshable {
-                // Clear cache and reload
-                pendingApprovalCache.removeAll()
                 viewModel.loadFoods()
             }
             .alert(isEnglishLanguage ? "Error" : "Алдаа", isPresented: $viewModel.showErrorAlert) {
@@ -168,15 +162,9 @@ struct NutritionDatabaseView: View {
                 // Clean up when leaving
                 selectedFood = nil
             }
-            // Remove the problematic notification observers that cause multiple loads
-            // .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-            //     viewModel.loadFoods()
-            // }
-            // Only keep this one for explicit refreshes after custom food is added
             .onReceive(NotificationCenter.default.publisher(for: Notification.Name("refreshNutritionDatabase"))) { _ in
                 // Clear cache and reload only if already loaded
                 if hasLoaded {
-                    pendingApprovalCache.removeAll()
                     viewModel.loadFoods()
                 }
             }
@@ -309,8 +297,9 @@ struct NutritionDatabaseView: View {
                         .foregroundColor(.primary)
                         .lineLimit(2)
                     
-                    // Show pending approval indicator for unverified meals
-                    if isPendingApproval(food) {
+                    // Show pending approval indicator for unverified meals (simplified, no state modification)
+                    if let currentUserId = AuthService.shared.getCurrentUserId(),
+                       food.creatorUserId == currentUserId {
                         HStack(spacing: 4) {
                             Image(systemName: "person.fill")
                                 .font(.caption2)
@@ -391,8 +380,9 @@ struct NutritionDatabaseView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .stroke(
-                    isPendingApproval(food) ? Color.infoApp.opacity(0.5) : Color.clear,
-                    lineWidth: isPendingApproval(food) ? 2 : 1
+                    // Simplified check without state modification
+                    (AuthService.shared.getCurrentUserId() == food.creatorUserId) ? Color.infoApp.opacity(0.5) : Color.clear,
+                    lineWidth: (AuthService.shared.getCurrentUserId() == food.creatorUserId) ? 2 : 1
                 )
         )
     }
@@ -454,52 +444,6 @@ struct NutritionDatabaseView: View {
                 viewModel.scannedBarcode = ""
             }
         }
-    }
-    
-    private func isPendingApproval(_ food: NutritionData) -> Bool {
-        // Check cache first to prevent repeated calculations
-        if let cachedResult = pendingApprovalCache[food.id] {
-            return cachedResult
-        }
-        
-        // Get current user ID for comparison
-        guard let currentUserId = AuthService.shared.getCurrentUserId() else {
-            pendingApprovalCache[food.id] = false
-            return false
-        }
-        
-        // Check if this food was created by the current user and might be pending approval
-        let userUnverifiedMeals = viewModel.nutritionDataService.userUnverifiedMeals.value
-        
-        // Only log once per food to prevent console spam
-        if pendingApprovalCache[food.id] == nil {
-            print("🔍 Checking isPendingApproval for food: \(food.name) (ID: \(food.id))")
-        }
-        
-        // First check: Is this food in the user's unverified meals list?
-        let isInUnverifiedList = userUnverifiedMeals.contains { unverifiedMeal in
-            let unverifiedNutritionData = unverifiedMeal.toNutritionData()
-            return unverifiedNutritionData.id == food.id || 
-                   (unverifiedMeal.name == food.name && unverifiedMeal.barcode == food.barcode)
-        }
-        
-        // Second check: Was this food created by the current user?
-        let isCreatedByCurrentUser = food.creatorUserId == currentUserId
-        
-        // Show pending approval indicator if:
-        // 1. The food is in the user's unverified meals list, OR
-        // 2. The food was created by the current user (regardless of verification status)
-        let isPending = isInUnverifiedList || isCreatedByCurrentUser
-        
-        // Cache the result to prevent repeated calculations
-        pendingApprovalCache[food.id] = isPending
-        
-        // Only log the result once per food
-        if pendingApprovalCache.count == 1 || food.id.hasSuffix("001") { // Log occasionally for debugging
-            print("🔍 isPendingApproval result for \(food.name): \(isPending)")
-        }
-        
-        return isPending
     }
 }
 
@@ -1060,7 +1004,6 @@ struct ModernFoodDetailView: View {
     @State private var foodImage: UIImage? = nil
     @State private var showBarcodeSheet = false
     @State private var showingAddedAlert = false
-    @State private var pendingApprovalCache: [String: Bool] = [:] // Move cache here
     @AppStorage("isDarkMode") private var isDarkMode = false
     @AppStorage("isEnglishLanguage") private var isEnglishLanguage = false
     
@@ -1114,7 +1057,8 @@ struct ModernFoodDetailView: View {
                                 .multilineTextAlignment(.center)
                             
                             // Show pending approval status if applicable
-                            if isPendingApproval(food) {
+                            if let currentUserId = AuthService.shared.getCurrentUserId(),
+                               food.creatorUserId == currentUserId {
                                 HStack(spacing: 8) {
                                     Image(systemName: "person.fill")
                                         .foregroundColor(Color.infoApp)
@@ -1556,52 +1500,6 @@ struct ModernFoodDetailView: View {
                 }
             }
         }
-    }
-    
-    private func isPendingApproval(_ food: NutritionData) -> Bool {
-        // Check cache first to prevent repeated calculations
-        if let cachedResult = pendingApprovalCache[food.id] {
-            return cachedResult
-        }
-        
-        // Get current user ID for comparison
-        guard let currentUserId = AuthService.shared.getCurrentUserId() else {
-            pendingApprovalCache[food.id] = false
-            return false
-        }
-        
-        // Check if this food was created by the current user and might be pending approval
-        let userUnverifiedMeals = viewModel.nutritionDataService.userUnverifiedMeals.value
-        
-        // Only log once per food to prevent console spam
-        if pendingApprovalCache[food.id] == nil {
-            print("🔍 Checking isPendingApproval for food: \(food.name) (ID: \(food.id))")
-        }
-        
-        // First check: Is this food in the user's unverified meals list?
-        let isInUnverifiedList = userUnverifiedMeals.contains { unverifiedMeal in
-            let unverifiedNutritionData = unverifiedMeal.toNutritionData()
-            return unverifiedNutritionData.id == food.id || 
-                   (unverifiedMeal.name == food.name && unverifiedMeal.barcode == food.barcode)
-        }
-        
-        // Second check: Was this food created by the current user?
-        let isCreatedByCurrentUser = food.creatorUserId == currentUserId
-        
-        // Show pending approval indicator if:
-        // 1. The food is in the user's unverified meals list, OR
-        // 2. The food was created by the current user (regardless of verification status)
-        let isPending = isInUnverifiedList || isCreatedByCurrentUser
-        
-        // Cache the result to prevent repeated calculations
-        pendingApprovalCache[food.id] = isPending
-        
-        // Only log the result once per food
-        if pendingApprovalCache.count == 1 || food.id.hasSuffix("001") { // Log occasionally for debugging
-            print("🔍 isPendingApproval result for \(food.name): \(isPending)")
-        }
-        
-        return isPending
     }
     
     private func generateBarcodeImage() {

@@ -3,8 +3,10 @@ import SwiftUI
 struct WeightLogSheet: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var viewModel: WeightLogViewModel
+    @StateObject private var languageManager = LanguageManager.shared
     @State private var showSuccess = false
     @State private var showError = false
+    @AppStorage("isDarkMode") private var isDarkMode = false
     
     var body: some View {
         NavigationStack {
@@ -21,54 +23,44 @@ struct WeightLogSheet: View {
                 }
                 .padding(.top)
                 
-                Text("Өнөөдрийн жингээ бүртгэх")
-                    .font(.title)
+                Text(languageManager.isEnglishLanguage ? "Log Today's Weight" : "Өнөөдрийн жингээ бүртгэх")
+                    .font(.title2)
                     .fontWeight(.bold)
-                    .multilineTextAlignment(.center)
+                    .foregroundColor(.primary)
                 
                 // Weight slider
-                VStack(spacing: 8) {
-                    HStack {
-                        Text("Жин")
-                            .font(.headline)
-                        
-                        Spacer()
-                        
-                        Text("\(String(format: "%.1f", viewModel.newWeight)) кг")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(Color.primaryApp)
-                    }
+                VStack(spacing: 10) {
+                    Text(languageManager.isEnglishLanguage ? "Weight" : "Жин")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                    
+                    Text("\(viewModel.newWeight, specifier: "%.1f") кг")
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundColor(Color.primaryApp)
                     
                     Slider(value: $viewModel.newWeight, in: 30...200, step: 0.1)
-                        .tint(Color.primaryApp)
-                        .padding(.vertical, 8)
-                    
-                    HStack {
-                        Text("30 кг")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                        
-                        Spacer()
-                        
-                        Text("200 кг")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
+                        .accentColor(Color.primaryApp)
+                        .padding(.horizontal)
                 }
                 .padding()
-                .background(Color(.secondarySystemBackground))
-                .cornerRadius(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(isDarkMode ? Color(.systemGray6) : Color(.systemGray6))
+                        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+                )
                 
-                // Notes
+                // Optional note
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Тэмдэглэл (заавал биш)")
+                    Text(languageManager.isEnglishLanguage ? "Note (Optional)" : "Тэмдэглэл (Заавал биш)")
                         .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
                     
-                    TextField("Өнөөдрийн жингийн талаар тэмдэглэл", text: $viewModel.weightNote)
-                        .padding()
-                        .background(Color(.secondarySystemBackground))
-                        .cornerRadius(8)
+                    TextField(languageManager.isEnglishLanguage ? "Note about today's weight" : "Өнөөдрийн жингийн талаар тэмдэглэл", text: $viewModel.weightNote)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .font(.body)
                 }
                 
                 // Error message if present
@@ -97,7 +89,7 @@ struct WeightLogSheet: View {
                     }
                 } label: {
                     HStack {
-                        Text("Хадгалах")
+                        Text(languageManager.isEnglishLanguage ? "Save" : "Хадгалах")
                             .fontWeight(.semibold)
                     }
                     .frame(maxWidth: .infinity)
@@ -118,7 +110,7 @@ struct WeightLogSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Хаах") {
+                    Button(languageManager.isEnglishLanguage ? "Close" : "Хаах") {
                         dismiss()
                     }
                 }
@@ -135,7 +127,7 @@ struct WeightLogSheet: View {
                                 .foregroundColor(.green)
                                 .symbolEffect(.bounce, options: .repeat(1))
                             
-                            Text("Хадгалагдлаа!")
+                            Text(languageManager.isEnglishLanguage ? "Saved!" : "Хадгалагдлаа!")
                                 .font(.title2)
                                 .fontWeight(.bold)
                         }
@@ -156,7 +148,7 @@ struct WeightLogSheet: View {
                                 .foregroundColor(.red)
                                 .symbolEffect(.pulse, options: .repeat(1))
                             
-                            Text("Алдаа гарлаа!")
+                            Text(languageManager.isEnglishLanguage ? "Error occurred!" : "Алдаа гарлаа!")
                                 .font(.title2)
                                 .fontWeight(.bold)
                             
@@ -170,7 +162,7 @@ struct WeightLogSheet: View {
                             Button {
                                 showError = false
                             } label: {
-                                Text("Дахин оролдох")
+                                Text(languageManager.isEnglishLanguage ? "Try Again" : "Дахин оролдох")
                                     .padding(.horizontal, 20)
                                     .padding(.vertical, 10)
                                     .background(Color.red)

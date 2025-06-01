@@ -15,6 +15,97 @@ struct Exercise: Identifiable, Codable, Equatable, Hashable {
     let isCustom: Bool
     let createdBy: String? // userId for custom exercises
     
+    // Mongolian name for the exercise
+    var mongolianName: String {
+        switch name {
+        // Compound exercises
+        case "Deadlift":
+            return "Үндсэн таталт"
+        case "Back Squat":
+            return "Үндсэн суулт"
+        case "Front Squat":
+            return "Урд талдаа штангтай суух"
+        case "Bench Press":
+            return "Цээж шахах"
+        case "Incline Bench Press":
+            return "Налуу хэвтэж шахах"
+        case "Decline Bench Press":
+            return "Урвуу хэвтэж шахах"
+        case "Overhead Press":
+            return "Штанг дээшээ түлхэх"
+        case "Pull-Up":
+            return "Суниах"
+        case "Chin-Up":
+            return "Эр суниалт"
+        case "Dip":
+            return "Суга турник суниалт"
+        case "Push-Up":
+            return "Газар суниах"
+        case "Barbell Row":
+            return "Нуруун штангийн таталт"
+        case "Dumbbell Row":
+            return "Гантель мөр"
+            
+        // Lower Body
+        case "Lunge":
+            return "Урагшлах"
+        case "Leg Press":
+            return "Хөл түлхэх"
+        case "Romanian Deadlift":
+            return "Румын дэдлифт"
+        case "Leg Curl":
+            return "Хөлний нугалах"
+        case "Leg Extension":
+            return "Хөлний сунгах"
+        case "Calf Raise":
+            return "Шилбэ"
+        case "Hip Thrust":
+            return "Ташааны түлхэлт"
+        case "Bulgarian Split Squat":
+            return "Болгар хувах скуат"
+            
+        // Upper Body - Push
+        case "Incline Dumbbell Press":
+            return "Налуу дамбелийн түлхэх"
+        case "Cable Chest Fly":
+            return "Кабелийн цээжийн нисэх"
+        case "Arnold Press":
+            return "Арнольд түлхэлт"
+        case "Lateral Raise":
+            return "Хажуугийн өргөх"
+        case "Triceps Pushdown":
+            return "Гурван толгойн доошлуулах"
+        case "Overhead Triceps Extension":
+            return "Толгой дээр гурван толгойн"
+            
+        // Upper Body - Pull
+        case "Lat Pulldown":
+            return "Нурууны өргөн таталт"
+        case "Seated Cable Row":
+            return "Суугаад кабел татах"
+        case "Face Pull":
+            return "Нүүр рүү татах"
+        case "Barbell Curl":
+            return "Штанг 2 толгой"
+        case "Dumbbell Curl":
+            return "Гантель 2 толгой"
+        case "Hammer Curl":
+            return "Алх барилт 2 толгой"
+            
+        // Core
+        case "Plank":
+            return "Планк"
+            
+        default:
+            return name // Return original name if no translation available
+        }
+    }
+    
+    // Get localized name based on language preference
+    func localizedName(isEnglish: Bool = false) -> String {
+        return isEnglish ? name : mongolianName
+    }
+    
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
@@ -33,6 +124,29 @@ enum ExerciseCategory: String, Codable, CaseIterable, Identifiable {
     case custom = "Custom"
     
     var id: String { self.rawValue }
+    
+    // Mongolian names for exercise categories
+    var mongolianName: String {
+        switch self {
+        case .compound:
+            return "Цогц дасгал"
+        case .lowerBody:
+            return "Доод биеийн дасгал"
+        case .upperBodyPush:
+            return "Дээд биеийн түлхэх"
+        case .upperBodyPull:
+            return "Дээд биеийн татах"
+        case .core:
+            return "Кор дасгал"
+        case .custom:
+            return "Миний дасгал"
+        }
+    }
+    
+    // Get localized name based on language preference
+    func localizedName(isEnglish: Bool = false) -> String {
+        return isEnglish ? self.rawValue : self.mongolianName
+    }
 }
 
 struct WorkoutSet: Identifiable, Codable, Equatable {
