@@ -12,87 +12,284 @@ struct ExercisesView: View {
     @State private var showingAddCustomExercise = false
     @State private var searchText = ""
     @State private var selectedExercise: Exercise?
+    @State private var showingError = false
+    @State private var showingDeleteAlert = false
+    @State private var exerciseToDelete: Exercise?
     @AppStorage("isDarkMode") private var isDarkMode = false
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Category picker
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        CategoryPill(title: "Бүгд", isSelected: viewModel.selectedCategory == nil) {
-                            viewModel.selectedCategory = nil
+                // Modern header with gradient
+                VStack(spacing: 16) {
+                    // Enhanced search bar
+                    ModernSearchBar(text: $searchText, placeholder: "Дасгал хайх...")
+                        .onChange(of: searchText) { _, newValue in
+                            viewModel.searchText = newValue
                             viewModel.filterExercises()
                         }
-                        
-                        ForEach(ExerciseCategory.allCases) { category in
-                            CategoryPill(title: category.rawValue, isSelected: viewModel.selectedCategory == category) {
-                                viewModel.selectedCategory = category
+                    
+                    // Category filter with modern design
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ModernCategoryPill(title: "Бүгд", isSelected: viewModel.selectedCategory == nil) {
+                                viewModel.selectedCategory = nil
                                 viewModel.filterExercises()
                             }
-                        }
-                    }
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                }
-                .background(Color(.secondarySystemBackground))
-                
-                // Search bar
-                SearchBar(text: $searchText, placeholder: "Хайх...")
-                    .padding(.horizontal)
-                    .onChange(of: searchText) { _, newValue in
-                        viewModel.searchText = newValue
-                        viewModel.filterExercises()
-                    }
-                
-                List {
-                    ForEach(viewModel.filteredExercises) { exercise in
-                        NavigationLink(destination: ExerciseDetailView(exercise: exercise, viewModel: viewModel)) {
-                            HStack {
-                                Text(exercise.name)
-                                    .font(.headline)
-                                
-                                Spacer()
-                                
-                                if exercise.isCustom {
-                                    Text("Өөрийн")
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(Color(.tertiarySystemBackground))
-                                        .cornerRadius(8)
+                            
+                            ForEach(ExerciseCategory.allCases) { category in
+                                ModernCategoryPill(title: category.rawValue, isSelected: viewModel.selectedCategory == category) {
+                                    viewModel.selectedCategory = category
+                                    viewModel.filterExercises()
                                 }
-                                
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
                             }
-                            .padding(.vertical, 4)
                         }
+                        .padding(.horizontal, 20)
+                    }
+                    
+                    // Stats summary
+                    if !viewModel.exercises.isEmpty {
+                        ExerciseStatsRow(
+                            totalExercises: viewModel.exercises.count,
+                            customExercises: viewModel.exercises.filter { $0.isCustom }.count,
+                            filteredCount: viewModel.filteredExercises.count
+                        )
+                        .padding(.horizontal, 20)
                     }
                 }
-                .listStyle(PlainListStyle())
+                .padding(.vertical, 20)
+                .background(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.blue.opacity(0.1),
+                            Color.blue.opacity(0.05)
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                
+                // Exercise list
+                if viewModel.filteredExercises.isEmpty {
+                    modernEmptyState
+                } else {
+                    modernExerciseList
+                }
             }
-            .navigationTitle("Дасгалууд")
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Text("Дасгалууд")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                }
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showingAddCustomExercise = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
+                    modernAddButton
                 }
             }
             .sheet(isPresented: $showingAddCustomExercise) {
-                AddCustomExerciseView(viewModel: viewModel)
+                ModernAddCustomExerciseView(viewModel: viewModel)
+            }
+            .alert("Дасгал устгах", isPresented: $showingDeleteAlert) {
+                Button("Цуцлах", role: .cancel) {
+                    exerciseToDelete = nil
+                }
+                Button("Устгах", role: .destructive) {
+                    if let exercise = exerciseToDelete {
+                        deleteExercise(exercise)
+                    }
+                }
+            } message: {
+                Text("Та энэ дасгалыг үнэхээр устгахыг хүсэж байна уу?")
+            }
+            .alert("Алдаа", isPresented: $showingError) {
+                Button("OK") { showingError = false }
+            } message: {
+                Text(viewModel.errorMessage ?? "Алдаа гарлаа")
             }
             .preferredColorScheme(isDarkMode ? .dark : .light)
+            .onAppear {
+                print("🔄 ExercisesView appeared - setting up")
+                setupErrorHandling()
+                
+                // Only reset navigation state if we're not already navigating
+                if selectedExercise == nil {
+                    // Reset view model state to prevent conflicts
+                    viewModel.resetNavigationState()
+                    
+                    // Reset search and filters to ensure clean state
+                    if searchText != viewModel.searchText {
+                        searchText = viewModel.searchText
+                    }
+                }
+            }
+            .onDisappear {
+                print("🔄 ExercisesView disappeared - cleaning up")
+                cleanupErrorHandling()
+                
+                // Don't clear navigation state when leaving the view as it might be for navigation
+                // selectedExercise = nil
+            }
+            .onChange(of: viewModel.errorMessage) { _, error in
+                showingError = error != nil
+            }
+            // Remove the notification center observers that might interfere with navigation
+            // Clear any existing selected exercise when view re-appears
+            // .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            //     selectedExercise = nil
+            // }
+            // Listen for tab switches to reset state when switching to exercises
+            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("tabSwitched"))) { notification in
+                if let tabName = notification.object as? String, tabName == "exercises" {
+                    print("🔄 Switching to exercises tab - resetting state")
+                    // Only reset if we're not in an active navigation
+                    if selectedExercise == nil {
+                        viewModel.resetNavigationState()
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Modern Components
+    
+    private var modernAddButton: some View {
+        Button {
+            showingAddCustomExercise = true
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(.white)
+                .frame(width: 32, height: 32)
+                .background(
+                    LinearGradient(
+                        gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.8)]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .clipShape(Circle())
+                .shadow(color: Color.blue.opacity(0.4), radius: 6, x: 0, y: 3)
+        }
+    }
+    
+    private var modernExerciseList: some View {
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                ForEach(viewModel.filteredExercises) { exercise in
+                    ModernExerciseCard(
+                        exercise: exercise,
+                        onTap: {
+                            selectedExercise = exercise
+                        },
+                        onDelete: exercise.isCustom ? {
+                            exerciseToDelete = exercise
+                            showingDeleteAlert = true
+                        } : nil
+                    )
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+        }
+        .background(Color.clear)
+        .navigationDestination(item: $selectedExercise) { exercise in
+            ExerciseDetailView(exercise: exercise, viewModel: viewModel)
+        }
+    }
+    
+    private var modernEmptyState: some View {
+        VStack(spacing: 24) {
+            Image(systemName: "dumbbell.fill")
+                .font(.system(size: 60))
+                .foregroundColor(.gray.opacity(0.6))
+            
+            VStack(spacing: 8) {
+                Text(searchText.isEmpty ? "Дасгал байхгүй" : "Хайлт олдсонгүй")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                
+                Text(searchText.isEmpty ? 
+                     "Өөрийн дасгал нэмэхээр эхэлнэ үү" : 
+                     "'\(searchText)' гэсэн хайлтад тохирох дасгал олдсонгүй")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+            }
+            
+            Button {
+                if searchText.isEmpty {
+                    showingAddCustomExercise = true
+                } else {
+                    searchText = ""
+                    viewModel.searchText = ""
+                    viewModel.filterExercises()
+                }
+            } label: {
+                Text(searchText.isEmpty ? "Өөрийн дасгал нэмэх" : "Хайлт цэвэрлэх")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.8)]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(25)
+                    .shadow(color: Color.blue.opacity(0.3), radius: 8, x: 0, y: 4)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemGroupedBackground))
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func setupErrorHandling() {
+        NotificationCenter.default.addObserver(
+            forName: Notification.Name("exerciseError"),
+            object: nil,
+            queue: .main
+        ) { notification in
+            if let _ = notification.object as? String {
+                self.showingError = true
+            }
+        }
+    }
+    
+    private func cleanupErrorHandling() {
+        NotificationCenter.default.removeObserver(
+            self,
+            name: Notification.Name("exerciseError"),
+            object: nil
+        )
+    }
+    
+    private func deleteExercise(_ exercise: Exercise) {
+        guard let exerciseId = exercise.id else { return }
+        
+        viewModel.deleteCustomExercise(exerciseId: exerciseId) { success in
+            if success {
+                exerciseToDelete = nil
+            } else {
+                showingError = true
+            }
         }
     }
 }
 
-struct CategoryPill: View {
+// MARK: - Supporting Views
+
+// ModernSearchBar is now imported from NutritionDatabaseView.swift
+
+struct ModernCategoryPill: View {
     let title: String
     let isSelected: Bool
     let action: () -> Void
@@ -104,9 +301,132 @@ struct CategoryPill: View {
                 .foregroundColor(isSelected ? .white : .primary)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .background(isSelected ? Color.blue : Color(.tertiarySystemBackground))
-                .cornerRadius(16)
-                .shadow(color: isSelected ? Color.blue.opacity(0.3) : Color.clear, radius: 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(isSelected ? 
+                            LinearGradient(gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.8)]), startPoint: .leading, endPoint: .trailing) :
+                            LinearGradient(gradient: Gradient(colors: [Color(.tertiarySystemBackground), Color(.tertiarySystemBackground)]), startPoint: .leading, endPoint: .trailing)
+                        )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(isSelected ? Color.blue.opacity(0.3) : Color.clear, lineWidth: 1)
+                )
+                .shadow(color: isSelected ? Color.blue.opacity(0.3) : Color.clear, radius: 4, x: 0, y: 2)
+        }
+        .scaleEffect(isSelected ? 1.05 : 1.0)
+        .animation(.easeInOut(duration: 0.2), value: isSelected)
+    }
+}
+
+struct ExerciseStatsRow: View {
+    let totalExercises: Int
+    let customExercises: Int
+    let filteredCount: Int
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            StatCard(title: "Нийт", value: "\(totalExercises)", icon: "list.bullet", color: .blue)
+            StatCard(title: "Өөрийн", value: "\(customExercises)", icon: "plus.circle", color: .green)
+            StatCard(title: "Харагдаж байгаа", value: "\(filteredCount)", icon: "eye", color: .orange)
+            
+            Spacer()
+        }
+    }
+}
+
+struct ModernExerciseCard: View {
+    let exercise: Exercise
+    let onTap: () -> Void
+    let onDelete: (() -> Void)?
+    
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 16) {
+                // Exercise icon
+                Image(systemName: exerciseIcon(for: exercise.category))
+                    .font(.system(size: 24, weight: .medium))
+                    .foregroundColor(categoryColor(for: exercise.category))
+                    .frame(width: 50, height: 50)
+                    .background(
+                        Circle()
+                            .fill(categoryColor(for: exercise.category).opacity(0.15))
+                    )
+                
+                // Exercise info
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(exercise.name)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .multilineTextAlignment(.leading)
+                    
+                    HStack(spacing: 8) {
+                        Text(exercise.category.rawValue)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        if exercise.isCustom {
+                            Text("Өөрийн")
+                                .font(.caption)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 2)
+                                .background(Color.green)
+                                .cornerRadius(8)
+                        }
+                    }
+                }
+                
+                Spacer()
+                
+                // Action buttons
+                HStack(spacing: 8) {
+                    if let onDelete = onDelete {
+                        Button(action: onDelete) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.red)
+                                .frame(width: 32, height: 32)
+                                .background(Color.red.opacity(0.1))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.gray)
+                }
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.systemGray6))
+                    .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private func exerciseIcon(for category: ExerciseCategory) -> String {
+        switch category {
+        case .compound: return "dumbbell.fill"
+        case .lowerBody: return "figure.walk"
+        case .upperBodyPush: return "arrow.up.circle.fill"
+        case .upperBodyPull: return "arrow.down.circle.fill"
+        case .core: return "circle.grid.cross.fill"
+        case .custom: return "plus.circle.fill"
+        }
+    }
+    
+    private func categoryColor(for category: ExerciseCategory) -> Color {
+        switch category {
+        case .compound: return .blue
+        case .lowerBody: return .green
+        case .upperBodyPush: return .orange
+        case .upperBodyPull: return .purple
+        case .core: return .red
+        case .custom: return .pink
         }
     }
 }

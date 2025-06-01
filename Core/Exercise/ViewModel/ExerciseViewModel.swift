@@ -2,12 +2,13 @@
 //  ExerciseViewModel.swift
 //  BeFit
 //
-//  Created by AI Assistant on 4/25/25.
+//  Created by Chinguun Khongor on 4/25/25.
 //
 
 import Foundation
 import Firebase
 import FirebaseFirestore
+import FirebaseAuth
 
 
 class ExerciseViewModel: ObservableObject {
@@ -16,14 +17,23 @@ class ExerciseViewModel: ObservableObject {
     @Published var filteredExercises: [Exercise] = []
     @Published var selectedCategory: ExerciseCategory?
     @Published var searchText: String = ""
+    @Published var errorMessage: String?
     
     private let userService = UserService.shared
     
     init() {
         loadDefaultExercises()
+        
+        // Check if user is authenticated
         if let user = userService.currentUser {
             fetchUserCustomExercises(userId: user.id)
             fetchUserWorkoutLogs(userId: user.id)
+        } else {
+            // No authenticated user - only show default exercises
+            print("No authenticated user found. Only showing default exercises.")
+            
+            // Try to refresh auth state - maybe we have a Firebase session but lost the local user
+            userService.tryRefreshAuth()
         }
         
         // Add observer for user session changes
@@ -82,13 +92,57 @@ class ExerciseViewModel: ObservableObject {
             .whereField("createdBy", isEqualTo: userId)
             .whereField("isCustom", isEqualTo: true)
             .getDocuments { [weak self] snapshot, error in
-                guard let self = self, let documents = snapshot?.documents, error == nil else {
-                    print("Error fetching custom exercises: \(error?.localizedDescription ?? "Unknown error")")
+                guard let self = self else { return }
+                
+                if let error = error {
+                    let errorMsg = "Error fetching custom exercises: \(error.localizedDescription)"
+                    print(errorMsg)
+                    
+                    // Check if it's an authentication error
+                    let nsError = error as NSError
+                    if nsError.domain == FirestoreErrorDomain && 
+                       (nsError.code == FirestoreErrorCode.permissionDenied.rawValue ||
+                        nsError.code == FirestoreErrorCode.unauthenticated.rawValue) {
+                        // Try to refresh authentication
+                        userService.tryRefreshAuth()
+                    }
+                    
+                    // Update published error message
+                    DispatchQueue.main.async {
+                        self.errorMessage = errorMsg
+                        
+                        // Also post notification for views that might be listening
+                        NotificationCenter.default.post(
+                            name: Notification.Name("exerciseError"), 
+                            object: errorMsg
+                        )
+                    }
                     return
                 }
                 
-                let customExercises = documents.compactMap { try? $0.data(as: Exercise.self) }
+                guard let documents = snapshot?.documents else {
+                    print("No custom exercises found")
+                    return
+                }
+                
+                let customExercises = documents.compactMap { document -> Exercise? in
+                    do {
+                        return try document.data(as: Exercise.self)
+                    } catch {
+                        let decodingError = "Error decoding exercise: \(error.localizedDescription)"
+                        print(decodingError)
+                        
+                        DispatchQueue.main.async {
+                            self.errorMessage = decodingError
+                        }
+                        return nil
+                    }
+                }
+                
                 DispatchQueue.main.async {
+                    // Clear any previous error
+                    self.errorMessage = nil
+                    
                     // Make sure we don't add duplicates
                     let existingNames = Set(self.exercises.map { $0.name.lowercased() })
                     let newExercises = customExercises.filter { !existingNames.contains($0.name.lowercased()) }
@@ -176,12 +230,23 @@ class ExerciseViewModel: ObservableObject {
                 guard let self = self else { return }
                 
                 if let error = error {
-                    print("Error fetching workout logs: \(error.localizedDescription)")
+                    let errorMsg = "Error fetching workout logs: \(error.localizedDescription)"
+                    print(errorMsg)
                     
-                    // Check if it's an index error
-                    if error.localizedDescription.contains("requires an index") {
-                        // Try fetching without ordering as a fallback
-                        self.fetchWorkoutLogsWithoutOrdering(userId: userId)
+                    DispatchQueue.main.async {
+                        self.errorMessage = errorMsg
+                        
+                        // Check if it's an index error
+                        if error.localizedDescription.contains("requires an index") {
+                            // Try fetching without ordering as a fallback
+                            self.fetchWorkoutLogsWithoutOrdering(userId: userId)
+                        } else {
+                            // Notify about the error
+                            NotificationCenter.default.post(
+                                name: Notification.Name("exerciseError"), 
+                                object: errorMsg
+                            )
+                        }
                     }
                     return
                 }
@@ -194,6 +259,8 @@ class ExerciseViewModel: ObservableObject {
                 let logs = documents.compactMap { try? $0.data(as: WorkoutLog.self) }
                 DispatchQueue.main.async {
                     self.workoutLogs = logs
+                    // Clear any error if the fetch was successful
+                    self.errorMessage = nil
                 }
             }
     }
@@ -207,7 +274,18 @@ class ExerciseViewModel: ObservableObject {
                 guard let self = self else { return }
                 
                 if let error = error {
-                    print("Error fetching workout logs without ordering: \(error.localizedDescription)")
+                    let errorMsg = "Error fetching workout logs without ordering: \(error.localizedDescription)"
+                    print(errorMsg)
+                    
+                    DispatchQueue.main.async {
+                        self.errorMessage = errorMsg
+                        
+                        // Notify about the error
+                        NotificationCenter.default.post(
+                            name: Notification.Name("exerciseError"), 
+                            object: errorMsg
+                        )
+                    }
                     return
                 }
                 
@@ -221,6 +299,8 @@ class ExerciseViewModel: ObservableObject {
                 
                 DispatchQueue.main.async {
                     self.workoutLogs = logs
+                    // Clear any error if the fetch was successful
+                    self.errorMessage = nil
                 }
             }
     }
@@ -304,6 +384,30 @@ class ExerciseViewModel: ObservableObject {
         
         return exerciseLogs.map { $0.totalVolume }.max() ?? 0.0
     }
+    
+    // MARK: - Navigation State Management
+    
+    /// Reset navigation state to prevent conflicts when switching between features
+    func resetNavigationState() {
+        print("🔄 ExerciseViewModel: Resetting navigation state")
+        
+        // Clear any error states
+        errorMessage = nil
+        
+        // Reset search and filters
+        searchText = ""
+        selectedCategory = nil
+        
+        // Re-filter exercises with clean state
+        filterExercises()
+        
+        // Force UI update
+        DispatchQueue.main.async {
+            self.objectWillChange.send()
+        }
+    }
+    
+    // MARK: - User Management
 }
 
 // UserService stub for getting the current user
@@ -333,6 +437,21 @@ class UserService {
         } else {
             self.currentUser = nil
             UserDefaults.standard.removeObject(forKey: "currentUser")
+        }
+    }
+    
+    // Try to refresh authentication state with Firebase
+    func tryRefreshAuth() {
+        // Check Firebase auth state directly
+        if let uid = Auth.auth().currentUser?.uid {
+            // We have a Firebase authenticated user, but no local user object
+            // This might happen if the app was force closed or cache was cleared
+            
+            // Notify the AuthService to refresh user data from Firestore
+            NotificationCenter.default.post(
+                name: Notification.Name("requestUserRefresh"),
+                object: uid
+            )
         }
     }
 } 

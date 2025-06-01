@@ -4,7 +4,7 @@
 <dict>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>com.gerege.BeFit</string>
+		<string>applinks:befit.gerege.com</string>
 	</array>
 </dict>
 </plist>

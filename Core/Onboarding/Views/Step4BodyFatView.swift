@@ -15,11 +15,24 @@ struct Step4BodyFatView: View {
                         Image(systemName: "info.circle.fill")
                         Text("Биеийн өөхийг хэрхэн тооцоолох вэ?")
                     }
-                    .foregroundColor(.blue)
+                    .foregroundColor(.white)
                     .padding()
-                    .background(Color.blue.opacity(0.1))
-                    .cornerRadius(10)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.8)]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(15)
+                    .shadow(color: .blue.opacity(0.6), radius: 8, x: 0, y: 5)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 15)
+                            .stroke(Color.blue.opacity(0.4), lineWidth: 2)
+                    )
                 }
+                .scaleEffect(showingGuide ? 0.95 : 1.0)
+                .animation(.easeInOut(duration: 0.1), value: showingGuide)
                 
                 // Body Fat Slider
                 VStack(spacing: 15) {
@@ -33,15 +46,60 @@ struct Step4BodyFatView: View {
                             .foregroundColor(user.bodyFatPercentage == nil ? .gray : .blue)
                     }
                     
-                    Slider(
-                        value: Binding(
-                            get: { user.bodyFatPercentage ?? 15 },
-                            set: { user.bodyFatPercentage = $0 }
-                        ),
-                        in: 5...50,
-                        step: 1
-                    )
-                    .accentColor(.blue)
+                    // Enhanced slider with buttons
+                    VStack(spacing: 10) {
+                        HStack(spacing: 15) {
+                            Button(action: {
+                                let current = user.bodyFatPercentage ?? 15
+                                if current > 5 {
+                                    user.bodyFatPercentage = current - 1
+                                }
+                            }) {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.blue)
+                            }
+                            
+                            VStack(spacing: 5) {
+                                Slider(
+                                    value: Binding(
+                                        get: { user.bodyFatPercentage ?? 15 },
+                                        set: { user.bodyFatPercentage = $0 }
+                                    ),
+                                    in: 5...50,
+                                    step: 1
+                                )
+                                .accentColor(.blue)
+                                .frame(height: 44)
+                                
+                                // Visual scale
+                                HStack {
+                                    Text("5%")
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                    Spacer()
+                                    Text("25%")
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                    Spacer()
+                                    Text("50%")
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                }
+                            }
+                            
+                            Button(action: {
+                                let current = user.bodyFatPercentage ?? 15
+                                if current < 50 {
+                                    user.bodyFatPercentage = current + 1
+                                }
+                            }) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                    }
                     
                     // Category Indicator
                     HStack {
@@ -82,10 +140,10 @@ struct Step4BodyFatView: View {
             .padding()
         }
         .onAppear{
-            print(user.sex!)
+            print(user.sex ?? "No sex selected")
         }
         .sheet(isPresented: $showingGuide) {
-            BodyFatGuideView()
+            BodyFatGuideView(user: user)
                 .presentationDetents([.fraction(0.8)])
         }
     }
@@ -155,42 +213,101 @@ struct Step4BodyFatView: View {
     }
 }
 
+// BodyFat Guide View with reference images
 struct BodyFatGuideView: View {
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
+    let user: User
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Guide content...
-                    Text("Биеийн өөхний хувийг хэрхэн тооцоолох вэ?")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .padding(.top)
+                VStack(spacing: 25) {
+                    // Header
+                    VStack(spacing: 10) {
+                        Text("Биеийн Өөхний Лавлагаа")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                        
+                        Text("Доорх зурагнуудаас хамгийн ойр өөрийн биеийн бүтэцтэй тааруулан харьцуулна уу")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
                     
-                    Group {
+                    // Reference images based on gender
+                    if let sex = user.sex {
+                        VStack(spacing: 15) {
+                            Text(sex == "Female" ? "Эмэгтэйчүүдийн хувьд" : "Эрэгтэйчүүдийн хувьд")
+                                .font(.headline)
+                                .foregroundColor(.blue)
+                            
+                            // Body fat reference image
+                            Image(sex == "Female" ? "female-bf-reference" : "male-bf-reference")
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .cornerRadius(15)
+                                .shadow(radius: 10)
+                        }
+                    } else {
+                        // Show placeholder when sex is not selected yet
+                        VStack(spacing: 15) {
+                            Text("Жин ба хүйс мэдээллээ оруулсны дараа лавлагаа харагдана")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                                .padding()
+                            
+                            RoundedRectangle(cornerRadius: 15)
+                                .fill(Color.gray.opacity(0.2))
+                                .frame(height: 200)
+                                .overlay(
+                                    Image(systemName: "person.crop.circle.dashed")
+                                        .font(.system(size: 50))
+                                        .foregroundColor(.gray)
+                                )
+                        }
+                    }
+                    
+                    // Tips section
+                    VStack(alignment: .leading, spacing: 15) {
+                        Text("Хэрхэн тооцоолох вэ?")
+                            .font(.headline)
+                            .foregroundColor(.blue)
+                        
                         guideSection(
-                            title: "Харааны үнэлгээ",
-                            description: "Биеэ лавлагааны зургуудтай харьцуулах",
-                            icon: "eye.fill"
+                            title: "Тусгал ашиглана уу",
+                            description: "Тусгалын өмнө зогсоод өөрийн биеийг анхааралтай харна уу",
+                            icon: "eye.circle"
                         )
                         
                         guideSection(
-                            title: "Биеийн өөх хэмжигч",
-                            description: "Арьсны нугалаа хэмжих зориулалттай хэмжигч ашиглах",
-                            icon: "ruler.fill"
+                            title: "Хэвлийн мужийг харна уу",
+                            description: "Хэвлийн булчин, хажууд талын өөх хуримтлалыг харьцуулна уу",
+                            icon: "figure.walk"
                         )
                         
                         guideSection(
-                            title: "Био-цахилгаан эсэргүүцэл",
-                            description: "Ухаалаг жин эсвэл гар төхөөрөмж ашиглах",
-                            icon: "bolt.fill"
+                            title: "Мөр, гарын өөхийг харна уу",
+                            description: "Мөр, бугуй, гарын мужид хуримтлагдсан өөхийг анхаарна уу",
+                            icon: "hand.raised.fill"
                         )
                     }
+                    .padding()
+                    .background(Color(.secondarySystemBackground))
+                    .cornerRadius(15)
                 }
                 .padding()
             }
-            .navigationBarItems(trailing: Button("Болсон") { dismiss() })
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Хаах") {
+                        dismiss()
+                    }
+                    .foregroundColor(.blue)
+                }
+            }
         }
     }
     
@@ -209,7 +326,7 @@ struct BodyFatGuideView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemBackground))
+        .background(Color(.tertiarySystemBackground))
         .cornerRadius(10)
     }
 }

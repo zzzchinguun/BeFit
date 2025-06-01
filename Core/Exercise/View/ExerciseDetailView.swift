@@ -2,7 +2,7 @@
 //  ExerciseDetailView.swift
 //  BeFit
 //
-//  Created by AI Assistant on 4/25/25.
+//  Created by Chinguun Khongor on 4/25/25.
 //
 
 import SwiftUI
@@ -51,7 +51,7 @@ struct ExerciseDetailView: View {
                 
                 // Stats summary
                 HStack(spacing: 0) {
-                    StatCard(
+                    ExerciseStatCard(
                         title: "Хамгийн их жин",
                         value: "\(String(format: "%.1f", viewModel.calculateMaxWeight(for: exercise.id ?? ""))) кг",
                         icon: "scalemass.fill"
@@ -59,7 +59,7 @@ struct ExerciseDetailView: View {
                     
                     Divider()
                     
-                    StatCard(
+                    ExerciseStatCard(
                         title: "Хамгийн их эзлэхүүн",
                         value: "\(Int(viewModel.calculateMaxVolume(for: exercise.id ?? "")))",
                         icon: "chart.bar.fill"
@@ -93,10 +93,16 @@ struct ExerciseDetailView: View {
         }
         .preferredColorScheme(isDarkMode ? .dark : .light)
         .onAppear {
+            print("🔄 ExerciseDetailView appeared for: \(exercise.name)")
             if let userId = viewModel.getCurrentUserId() {
                 viewModel.fetchUserWorkoutLogs(userId: userId)
             }
         }
+        .onDisappear {
+            print("🔄 ExerciseDetailView disappeared for: \(exercise.name)")
+        }
+        // Prevent interference from other view state changes
+        .id("exercise-detail-\(exercise.id ?? "")")
     }
     
     private var historyView: some View {
@@ -217,6 +223,7 @@ struct TimeRangeSelector: View {
                     }
                 }
             }
+            .padding(.horizontal)
         }
     }
 }
@@ -253,10 +260,11 @@ struct ProgressChartView: View {
                 }
                 .chartYScale(domain: getYAxisRange())
                 .chartXAxis {
-                    AxisMarks(preset: .aligned, values: .automatic(desiredCount: 5)) { value in
+                    AxisMarks(preset: .aligned, values: .automatic(desiredCount: getDesiredAxisCount())) { value in
                         if let date = value.as(Date.self) {
                             AxisGridLine().foregroundStyle(Color.gray.opacity(0.2))
                             AxisValueLabel(formatDate(date), anchor: .top)
+                                .font(.caption2)
                         }
                     }
                 }
@@ -278,8 +286,10 @@ struct ProgressChartView: View {
             }
         }
         .padding()
-        .background(colorScheme == .dark ? Color(.secondarySystemBackground) : Color(.systemBackground))
-        .cornerRadius(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.systemBackground))
+        )
         .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
     }
     
@@ -301,7 +311,7 @@ struct ProgressChartView: View {
             let maxValue = values.max() ?? 10
             let buffer = max((maxValue - minValue) * 0.1, 1)
             
-            return max(minValue - buffer, 0)...maxValue + buffer
+            return max(minValue - buffer, 0)...(maxValue + buffer)
         }
         return 0...10
     }
@@ -320,7 +330,9 @@ struct ProgressChartView: View {
         let formatter = DateFormatter()
         
         switch timeRange {
-        case .week, .month:
+        case .week:
+            formatter.dateFormat = "d/M"  // Shorter format for weekly view
+        case .month:
             formatter.dateFormat = "d MMM"
         case .threeMonths, .sixMonths:
             formatter.dateFormat = "d MMM"
@@ -329,6 +341,19 @@ struct ProgressChartView: View {
         }
         
         return formatter.string(from: date)
+    }
+    
+    private func getDesiredAxisCount() -> Int {
+        switch timeRange {
+        case .week:
+            return 3  // Show fewer ticks for weekly view to avoid overcrowding
+        case .month:
+            return 4
+        case .threeMonths, .sixMonths:
+            return 3
+        case .year, .all:
+            return 5
+        }
     }
 }
 
@@ -465,8 +490,10 @@ struct StatisticBox: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(colorScheme == .dark ? Color(.secondarySystemBackground) : Color(.systemBackground))
-        .cornerRadius(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.systemBackground))
+        )
         .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
     }
 }
@@ -538,7 +565,8 @@ enum TimeRange: String, CaseIterable {
     }
 }
 
-struct StatCard: View {
+// Renamed to avoid conflict with StatCard in ExercisesView
+struct ExerciseStatCard: View {
     let title: String
     let value: String
     let icon: String
@@ -577,9 +605,10 @@ struct WorkoutLogCard: View {
                     .foregroundColor(.gray)
             }
             
-            ForEach(log.sets) { set in
+            ForEach(log.sets.indices, id: \.self) { index in
+                let set = log.sets[index]
                 HStack {
-                    Text("Сет \(log.sets.firstIndex(where: { $0.id == set.id })! + 1)")
+                    Text("Сет \(index + 1)")
                         .font(.subheadline)
                         .foregroundColor(.gray)
                     
@@ -606,7 +635,7 @@ struct WorkoutLogCard: View {
             }
         }
         .padding()
-        .background(Color(.secondarySystemBackground))
+        .background(Color(.systemGray6))
         .cornerRadius(12)
     }
     

@@ -2,21 +2,24 @@
 //  ColorTheme.swift
 //  BeFit
 //
-//  Created by AI Assistant on 5/8/25.
+//  Created by Chinguun Khongor on 5/8/25.
 //
 
 import SwiftUI
 
 // App color theme following the 60-30-10 color rule
 extension Color {
-    // Primary - 60% of UI
-    static let primaryApp = Color(hex: "39FF14") // Neon green (was blue)
+    // Primary - 60% of UI (changed from neon green to blue)
+    static let primaryApp = Color(hex: "007AFF") // iOS system blue
     
     // Secondary - 30% of UI
     static let secondaryApp = Color(hex: "2E3A59") // Dark blue/gray
     
     // Accent - 10% of UI (for call to action, important info)
     static let accentApp = Color(hex: "FF5C5C") // Accent red
+    
+    // Special purpose colors
+    static let weightLogGreen = Color(hex: "39FF14") // Neon green specifically for weight log button
     
     // Background and text colors
     static let neutralBackground = Color(hex: "F6F8FA") // Light background

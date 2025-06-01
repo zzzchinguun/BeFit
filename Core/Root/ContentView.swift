@@ -44,6 +44,13 @@ struct ContentView: View {
                 }
             }
             .background(colorScheme == .dark ? Color.neutralBackgroundDark : Color.neutralBackground)
+            #if DEBUG
+            .onShake {
+                // Add shake gesture to reset app state during development
+                print("🔄 Development shake detected - resetting app state")
+                resetAuthState()
+            }
+            #endif
             .onAppear {
                 if !hasTriedTestUser {
                     Task {
@@ -76,6 +83,7 @@ struct ContentView: View {
                     .zIndex(1)
             }
         }
+        .errorBoundary() // Add error boundary for better crash handling
     }
     
     private func resetAuthState() {
@@ -99,6 +107,87 @@ struct ContentView: View {
                 refreshID = UUID() // Generate new ID to force another refresh
             }
         }
+    }
+}
+
+// MARK: - Development Extensions
+
+#if DEBUG
+extension UIWindow {
+    open override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
+        if motion == .motionShake {
+            NotificationCenter.default.post(name: Notification.Name("DeviceShaken"), object: nil)
+        }
+    }
+}
+
+struct ShakeDetectorViewModifier: ViewModifier {
+    let action: () -> Void
+    
+    func body(content: Content) -> some View {
+        content
+            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("DeviceShaken"))) { _ in
+                action()
+            }
+    }
+}
+
+extension View {
+    func onShake(perform action: @escaping () -> Void) -> some View {
+        self.modifier(ShakeDetectorViewModifier(action: action))
+    }
+}
+#endif
+
+// MARK: - Error Boundary
+
+struct ErrorBoundaryViewModifier: ViewModifier {
+    @State private var hasError = false
+    @State private var errorMessage = ""
+    
+    func body(content: Content) -> some View {
+        if hasError {
+            VStack(spacing: 20) {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 50))
+                    .foregroundColor(.red)
+                
+                Text("Something went wrong")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                
+                Text(errorMessage)
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                
+                Button("Try Again") {
+                    hasError = false
+                    errorMessage = ""
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .padding()
+        } else {
+            content
+                .onAppear {
+                    // Reset error state when content appears
+                    hasError = false
+                    errorMessage = ""
+                }
+                .onReceive(NotificationCenter.default.publisher(for: Notification.Name("CriticalError"))) { notification in
+                    if let error = notification.object as? Error {
+                        hasError = true
+                        errorMessage = error.localizedDescription
+                    }
+                }
+        }
+    }
+}
+
+extension View {
+    func errorBoundary() -> some View {
+        self.modifier(ErrorBoundaryViewModifier())
     }
 }
 

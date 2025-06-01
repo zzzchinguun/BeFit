@@ -2,7 +2,7 @@
 //  MealService.swift
 //  BeFit
 //
-//  Created by AI Assistant on 5/8/25.
+//  Created by Chinguun Khongor on 5/8/25.
 //
 
 import Foundation
@@ -115,11 +115,32 @@ class MealService: FirebaseService, MealServiceProtocol {
         
         do {
             let docRef = try await db.collection("meals").addDocument(data: try Firestore.Encoder().encode(newMeal))
+            
             // Store the added meal ID for UI highlighting
             lastAddedMealId.send(docRef.documentID)
             
-            // Refresh meals to include the new one
-            await fetchMeals()
+            // Optimistically update local data instead of full refresh
+            var currentMeals = meals.value
+            let newMealWithId = Meal(
+                id: docRef.documentID,
+                userId: userId,
+                name: name,
+                calories: calories,
+                protein: protein,
+                carbs: carbs,
+                fat: fat,
+                date: Date(),
+                mealType: mealType,
+                weight: weight
+            )
+            
+            currentMeals.insert(newMealWithId, at: 0) // Add to beginning (newest first)
+            meals.send(currentMeals)
+            
+            // Update daily meals and nutrition efficiently
+            filterTodayMeals()
+            updateTodayNutrition()
+            
         } catch {
             throw handleError(error)
         }
@@ -133,8 +154,21 @@ class MealService: FirebaseService, MealServiceProtocol {
         
         do {
             try await db.collection("meals").document(mealId).setData(try Firestore.Encoder().encode(meal))
-            await fetchMeals()
+            
+            // Optimistically update local data
+            var currentMeals = meals.value
+            if let index = currentMeals.firstIndex(where: { $0.id == mealId }) {
+                currentMeals[index] = meal
+                meals.send(currentMeals)
+                
+                // Update daily meals and nutrition
+                filterTodayMeals()
+                updateTodayNutrition()
+            }
+            
         } catch {
+            // If update fails, refresh from server
+            await fetchMeals()
             throw handleError(error)
         }
     }
@@ -147,8 +181,19 @@ class MealService: FirebaseService, MealServiceProtocol {
         
         do {
             try await db.collection("meals").document(mealId).delete()
-            await fetchMeals()
+            
+            // Optimistically update local data
+            var currentMeals = meals.value
+            currentMeals.removeAll { $0.id == mealId }
+            meals.send(currentMeals)
+            
+            // Update daily meals and nutrition
+            filterTodayMeals()
+            updateTodayNutrition()
+            
         } catch {
+            // If delete fails, refresh from server
+            await fetchMeals()
             throw handleError(error)
         }
     }

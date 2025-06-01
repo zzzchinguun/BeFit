@@ -23,6 +23,7 @@ struct RegisterationView: View {
     @State private var showEmailError = false
     @State private var showPasswordError = false
     @State private var showConfirmPasswordError = false
+    @State private var isLoading = false
     @FocusState private var focusedField: Field?
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var viewModel: AuthViewModel
@@ -249,6 +250,7 @@ struct RegisterationView: View {
                 // Sign Up Button
                 Button {
                     Task {
+                        isLoading = true
                         do {
                             errorMessage = "" // Clear previous errors
                             try await viewModel.createUser(
@@ -257,29 +259,40 @@ struct RegisterationView: View {
                                 firstName: firstName,
                                 lastName: lastName
                             )
+                            // Mark that onboarding is needed for the new user
+                            UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
                             showStatusSheet = true
                         } catch {
                             registrationError = error
                             errorMessage = getUserFriendlyErrorMessage(from: error)
                             showStatusSheet = true
                         }
+                        isLoading = false
                     }
                 } label: {
                     HStack {
-                        Text("Бүртгүүлэх")
-                            .fontWeight(.semibold)
-                        Image(systemName: "arrow.right")
+                        if isLoading {
+                            ProgressView()
+                                .tint(.white)
+                                .scaleEffect(0.8)
+                            Text("Бүртгэж байна...")
+                                .fontWeight(.semibold)
+                        } else {
+                            Text("Бүртгүүлэх")
+                                .fontWeight(.semibold)
+                            Image(systemName: "arrow.right")
+                        }
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(formIsValid ? Color.blue : Color.blue.opacity(0.3))
+                            .fill((formIsValid && !isLoading) ? Color.blue : Color.blue.opacity(0.3))
                     )
                     .padding(.horizontal)
                 }
-                .disabled(!formIsValid)
+                .disabled(!formIsValid || isLoading)
                 
                 // Sign In Link
                 Button {

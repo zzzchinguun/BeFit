@@ -2,7 +2,7 @@
 //  NutritionDatabaseViewModel.swift
 //  BeFit
 //
-//  Created by AI Assistant on 5/10/25.
+//  Created by Chinguun Khongor on 5/10/25.
 //
 
 import Foundation
@@ -98,13 +98,17 @@ class NutritionDatabaseViewModel: ObservableObject {
     /// Add a food to meal log
     func addFoodToMealLog(food: NutritionData, weight: Double, mealType: MealType) async {
         guard let userId = AuthService.shared.getCurrentUserId() else {
-            self.errorMessage = "Хэрэглэгч олдсонгүй."
-            self.showErrorAlert = true
+            await MainActor.run {
+                self.errorMessage = "Хэрэглэгч олдсонгүй."
+                self.showErrorAlert = true
+            }
             return
         }
         
         do {
             let meal = food.createMeal(userId: userId, weight: weight, mealType: mealType)
+            
+            // Add meal without triggering excessive refreshes
             try await mealService.addMeal(
                 name: meal.name,
                 calories: meal.calories,
@@ -114,9 +118,15 @@ class NutritionDatabaseViewModel: ObservableObject {
                 mealType: meal.mealType,
                 weight: meal.weight
             )
+            
+            print("Successfully added \(meal.name) to meal log")
+            
         } catch {
-            self.errorMessage = "Хоолны өгөгдөл нэмэхэд алдаа гарлаа: \(error.localizedDescription)"
-            self.showErrorAlert = true
+            await MainActor.run {
+                self.errorMessage = "Хоолны өгөгдөл нэмэхэд алдаа гарлаа: \(error.localizedDescription)"
+                self.showErrorAlert = true
+            }
+            print("Error adding food to meal log: \(error)")
         }
     }
     
@@ -149,6 +159,10 @@ class NutritionDatabaseViewModel: ObservableObject {
         
         let id = "custom_\(UUID().uuidString)"
         
+        // Get current user info for creator attribution
+        let currentUserId = AuthService.shared.getCurrentUserId()
+        let currentUserEmail = AuthService.shared.currentUser.value?.email
+        
         let food = NutritionData(
             id: id,
             name: name,
@@ -162,7 +176,9 @@ class NutritionDatabaseViewModel: ObservableObject {
             servingSizeGrams: servingSizeGrams,
             servingDescription: servingDescription,
             imageURL: imageURL,
-            barcode: barcode
+            barcode: barcode,
+            creatorUserId: currentUserId,
+            createdByEmail: currentUserEmail
         )
         
         nutritionDataService.addCustomFood(food)

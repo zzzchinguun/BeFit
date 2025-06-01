@@ -2,7 +2,7 @@
 //  NutritionData.swift
 //  BeFit
 //
-//  Created by AI Assistant on 5/10/25.
+//  Created by Chinguun Khongor on 5/10/25.
 //
 
 import Foundation
@@ -22,13 +22,33 @@ struct NutritionData: Identifiable, Codable, Hashable {
     let imageURL: String?
     let barcode: String?
     
+    // Creator information - optional for backwards compatibility
+    let creatorUserId: String?
+    let createdByEmail: String?
+    
     // Common foods often have standard reference amounts
     var isCommonFood: Bool {
         return category != .custom
     }
     
-    // Initialize with optional imageURL and barcode
-    init(id: String, name: String, category: FoodCategory, calories: Double, protein: Double, carbs: Double, fat: Double, fiber: Double, sugar: Double, servingSizeGrams: Double, servingDescription: String, imageURL: String? = nil, barcode: String? = nil) {
+    // Initialize with optional imageURL, barcode, and creator info
+    init(
+        id: String, 
+        name: String, 
+        category: FoodCategory, 
+        calories: Double, 
+        protein: Double, 
+        carbs: Double, 
+        fat: Double, 
+        fiber: Double, 
+        sugar: Double, 
+        servingSizeGrams: Double, 
+        servingDescription: String, 
+        imageURL: String? = nil, 
+        barcode: String? = nil,
+        creatorUserId: String? = nil,
+        createdByEmail: String? = nil
+    ) {
         self.id = id
         self.name = name
         self.category = category
@@ -42,6 +62,8 @@ struct NutritionData: Identifiable, Codable, Hashable {
         self.servingDescription = servingDescription
         self.imageURL = imageURL
         self.barcode = barcode
+        self.creatorUserId = creatorUserId
+        self.createdByEmail = createdByEmail
     }
 }
 

@@ -2,7 +2,7 @@
 //  MealsView.swift
 //  BeFit
 //
-//  Created by AI Assistant on 3/31/25.
+//  Created by Chinguun Khongor on 3/31/25.
 //
 
 import SwiftUI
@@ -19,6 +19,10 @@ struct MealsView: View {
     @State private var currentDetent: PresentationDetent = .medium
     @AppStorage("isEnglishLanguage") private var isEnglishLanguage = false
     @State private var expandedMealId: String? = nil
+    @State private var lastRefreshTime: Date = Date.distantPast
+    
+    // Debouncing constant
+    private let refreshDebounceInterval: TimeInterval = 2.0 // 2 seconds
     
     var body: some View {
         VStack(spacing: 20) {
@@ -42,19 +46,27 @@ struct MealsView: View {
                         addedMealId = lastMeal.id
                     }
                     
-                    // Refresh data
-                    Task {
-                        await viewModel.fetchMeals()
-                    }
+                    // Remove excessive refresh - data should already be updated optimistically
+                    // Task {
+                    //     await viewModel.fetchMeals()
+                    // }
                 }
         }
         .alert("Хоол устгах", isPresented: $showDeleteAlert) {
             Button("Цуцлах", role: .cancel) { }
             Button("Устгах", role: .destructive) {
                 if let meal = mealToDelete {
+                    // Clear expanded state if deleting the currently expanded meal
+                    if expandedMealId == meal.id {
+                        expandedMealId = nil
+                    }
+                    
                     Task {
                         try? await viewModel.deleteMeal(meal)
                     }
+                    
+                    // Clear the meal reference
+                    mealToDelete = nil
                 }
             }
         } message: {
@@ -70,8 +82,17 @@ struct MealsView: View {
         .onChange(of: viewModel.dailyMeals) { _, newMeals in
             // Check if a new meal was added
             if !newMeals.isEmpty, let lastMeal = newMeals.first, lastMeal.id == addedMealId {
-                withAnimation {
+                withAnimation(.easeInOut(duration: 0.2)) {
                     shouldHighlightNewMeal = true
+                }
+            }
+            
+            // Clear expanded state if the expanded meal no longer exists
+            if let expandedId = expandedMealId {
+                let expandedMealExists = newMeals.contains { $0.id == expandedId }
+                if !expandedMealExists {
+                    // Use immediate state change without animation to prevent conflicts
+                    expandedMealId = nil
                 }
             }
         }
@@ -81,9 +102,10 @@ struct MealsView: View {
         .sheet(isPresented: $showNutritionDatabase) {
             NutritionDatabaseView()
                 .onDisappear {
-                    Task {
-                        await viewModel.fetchMeals()
-                    }
+                    // Remove excessive refresh - nutrition database adds optimistically update meals
+                    // Task {
+                    //     await viewModel.fetchMeals()
+                    // }
                 }
         }
     }
@@ -99,9 +121,13 @@ struct MealsView: View {
                 Spacer()
                 
                 Button {
-                    // Refresh data manually
-                    Task {
-                        await viewModel.fetchMeals()
+                    // Refresh data manually with debouncing
+                    let now = Date()
+                    if now.timeIntervalSince(lastRefreshTime) >= refreshDebounceInterval {
+                        lastRefreshTime = now
+                        Task {
+                            await viewModel.fetchMeals()
+                        }
                     }
                 } label: {
                     Image(systemName: "arrow.clockwise")
@@ -285,11 +311,14 @@ struct MealsView: View {
     // MARK: - Meals List View
     private var mealsListView: some View {
         ScrollView {
-            LazyVStack(spacing: 12) {
+            LazyVStack(spacing: 16) {
                 ForEach(viewModel.dailyMeals) { meal in
                     mealRowView(for: meal)
+                        .id("\(meal.id ?? UUID().uuidString)_\(meal.date.timeIntervalSince1970)") // Stable, unique identity
                 }
             }
+            .padding(.horizontal, 16) // Add proper horizontal padding
+            .padding(.bottom, 100) // Extra bottom padding to prevent overlap with tab bar
         }
     }
     
@@ -299,32 +328,25 @@ struct MealsView: View {
             meal: meal, 
             viewModel: viewModel,
             onDelete: {
+                // Clear expanded state if deleting the currently expanded meal
+                if expandedMealId == meal.id {
+                    expandedMealId = nil
+                }
                 mealToDelete = meal
                 showDeleteAlert = true
             },
             expandedMealId: $expandedMealId
         )
-        .padding(.horizontal)
-        .background(
-            mealRowBackground(for: meal)
+        .overlay(
+            // Simple highlight overlay without complex animations
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(lineWidth: 2)
+                .foregroundColor(shouldHighlightNewMeal && meal.id == addedMealId ? .blue : .clear)
         )
-        .padding(.horizontal)
-        .scaleEffect(shouldHighlightNewMeal && meal.id == addedMealId ? 1.02 : 1.0)
-        .animation(.spring(), value: shouldHighlightNewMeal && meal.id == addedMealId)
+        .scaleEffect(shouldHighlightNewMeal && meal.id == addedMealId ? 1.01 : 1.0)
         .onAppear {
             checkIfNewlyAddedMeal(meal)
         }
-    }
-    
-    // MARK: - Meal Row Background
-    private func mealRowBackground(for meal: Meal) -> some View {
-        RoundedRectangle(cornerRadius: 10)
-            .fill(Color(.secondarySystemBackground))
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(lineWidth: 2)
-                    .foregroundColor(shouldHighlightNewMeal && meal.id == addedMealId ? .blue : .clear)
-            )
     }
     
     // MARK: - Check New Meal

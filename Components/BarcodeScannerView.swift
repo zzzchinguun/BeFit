@@ -2,7 +2,7 @@
 //  BarcodeScannerView.swift
 //  BeFit
 //
-//  Created by AI Assistant on 5/11/25.
+//  Created by Chinguun Khongor on 5/11/25.
 //
 
 import SwiftUI

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Foundation
 
 // MARK: - Main Component
 struct MealRowView: View {
@@ -27,12 +28,17 @@ struct MealRowView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Header Row - Always visible
             Button(action: {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    // Toggle expansion
-                    if isExpanded {
-                        expandedMealId = nil
-                    } else if let id = meal.id {
-                        expandedMealId = id
+                // Toggle expansion with proper animation scope and safety check
+                guard let mealId = meal.id else { return }
+                
+                // Add small delay to prevent rapid tapping issues
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        if isExpanded {
+                            expandedMealId = nil
+                        } else {
+                            expandedMealId = mealId
+                        }
                     }
                 }
             }) {
@@ -80,6 +86,7 @@ struct MealRowView: View {
                 }
                 .contentShape(Rectangle())
                 .padding(.vertical, 12)
+                .padding(.horizontal, 16)
             }
             .buttonStyle(PlainButtonStyle())
             
@@ -91,11 +98,12 @@ struct MealRowView: View {
                     onDelete: onDelete
                 )
                 .transition(.opacity)
+                .animation(.easeInOut(duration: 0.2), value: isExpanded)
             }
         }
-        .background(Color(.secondarySystemBackground))
+        .background(Color(.systemGray6))
         .cornerRadius(10)
-        .padding(.horizontal, 1)
+        .clipped() // Prevent overflow during animation
         // Handle the edit sheet
         .sheet(isPresented: $showEditSheet) {
             NavigationView {
@@ -147,6 +155,7 @@ struct ExpandedDetailsView: View {
     var body: some View {
         VStack(spacing: 16) {
             Divider()
+                .opacity(0.5)
             
             // Macros details in a separate scrollable area
             HStack(spacing: 12) {
@@ -212,7 +221,7 @@ struct MacroDetail: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
-        .background(color.opacity(0.1))
+        .background(Color(.systemGray5))
         .cornerRadius(8)
     }
 }
@@ -224,7 +233,7 @@ struct MacroDetail: View {
         set: { _ in }
     )
     
-    return MealRowView(
+    MealRowView(
         meal: Meal.MOCK_MEALS[0], 
         viewModel: MealViewModel(),
         expandedMealId: previewBinding

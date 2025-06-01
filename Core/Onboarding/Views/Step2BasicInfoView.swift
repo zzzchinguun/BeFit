@@ -79,26 +79,26 @@ struct Step2BasicInfoView: View {
                                     Text(level)
                                         .font(.subheadline)
                                         .fontWeight(.medium)
+                                        .foregroundColor(user.activityLevel == level ? .white : .blue)
                                     Text(activityLevels[level] ?? "")
                                         .font(.caption)
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(user.activityLevel == level ? .white.opacity(0.9) : .gray)
                                 }
                                 
                                 Spacer()
                                 
-                                if user.activityLevel == level {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.blue)
-                                }
+                                Image(systemName: user.activityLevel == level ? "checkmark.circle.fill" : "circle")
+                                    .foregroundColor(user.activityLevel == level ? .white : .blue)
+                                    .imageScale(.large)
                             }
                             .padding()
                             .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(user.activityLevel == level ? Color.blue.opacity(0.1) : Color(.secondarySystemBackground))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .stroke(user.activityLevel == level ? Color.blue : Color.clear, lineWidth: 1)
-                                    )
+                                RoundedRectangle(cornerRadius: 15)
+                                    .fill(user.activityLevel == level ? Color.blue : Color(.secondarySystemBackground))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 15)
+                                    .stroke(user.activityLevel == level ? Color.clear : Color.blue.opacity(0.3), lineWidth: 1)
                             )
                         }
                         .foregroundColor(.primary)

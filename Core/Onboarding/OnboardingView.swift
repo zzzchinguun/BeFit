@@ -20,18 +20,21 @@ struct OnboardingView: View {
                 HStack(spacing: 6) {
                     ForEach(1...totalSteps, id: \.self) { step in
                         Capsule()
-                            .fill(currentStep >= step ? Color.blue : Color.gray.opacity(0.3))
+                            .fill(getStepColor(for: step))
                             .frame(width: UIScreen.main.bounds.width / CGFloat(totalSteps + 1), height: 4)
                             .overlay(
                                 Capsule()
-                                    .stroke(Color.blue.opacity(0.3), lineWidth: currentStep == step ? 2 : 0)
+                                    .stroke(currentStep == step ? Color.blue.opacity(0.3) : Color.clear, lineWidth: currentStep == step ? 2 : 0)
                                     .scaleEffect(1.2)
                             )
                             .onTapGesture {
                                 withAnimation {
                                     dismissKeyboard()
-                                    currentStep = step
-                                    validationMessage = nil
+                                    // Only allow navigation to completed steps or the next available step
+                                    if step <= getMaxAllowedStep() {
+                                        currentStep = step
+                                        validationMessage = nil
+                                    }
                                 }
                             }
                     }
@@ -84,16 +87,27 @@ struct OnboardingView: View {
                     .tag(6)
                     .padding()
                     .focused($isAnyFieldFocused)
-                Step5GoalWeightDaysView(user: $user)
+                Step7MacroView(user: $user)
                     .tag(7)
                     .padding()
                     .focused($isAnyFieldFocused)
-                Step7MacroView(user: $user)
+                Step5GoalWeightDaysView(user: $user)
                     .tag(8)
                     .padding()
                     .focused($isAnyFieldFocused)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
+            .onChange(of: currentStep) { oldValue, newValue in
+                // Prevent TabView from changing to invalid steps via swipe
+                let maxAllowed = getMaxAllowedStep()
+                if newValue > maxAllowed {
+                    currentStep = oldValue
+                } else {
+                    // Clear validation message when moving to a valid step
+                    validationMessage = nil
+                }
+            }
+            .animation(.easeInOut(duration: 0.3), value: currentStep)
             
             // Validation message if needed
             if let message = validationMessage {
@@ -204,9 +218,6 @@ struct OnboardingView: View {
             .background(Color(.secondarySystemBackground))
         }
         .preferredColorScheme(isDarkMode ? .dark : .light)
-        .onChange(of: currentStep) { _ in
-            validationMessage = nil
-        }
     }
     
     private func dismissKeyboard() {
@@ -235,8 +246,8 @@ struct OnboardingView: View {
         case 4: return "Таны биеийн бүтэц хэмжиж үзье"
         case 5: return "Та ямар зорилго тавьж байна вэ?"
         case 6: return "Өөрийн зорилтот хугацааг тохируулна уу"
-        case 7: return "Таны тооцоолсон үр дүнг харуулж байна"
-        case 8: return "Хооллолтын төлөвлөгөөгөө тохируулна уу"
+        case 7: return "Хооллолтын төлөвлөгөөгөө тохируулна уу"
+        case 8: return "Таны тооцоолсон үр дүнг харуулж байна"
         default: return ""
         }
     }
@@ -244,7 +255,7 @@ struct OnboardingView: View {
     private var canProceed: Bool {
         switch currentStep {
         case 1: return true
-        case 2: return user.age != nil && user.sex != nil
+        case 2: return user.age != nil && user.sex != nil && user.activityLevel != nil
         case 3: return user.height != nil && user.weight != nil
         case 4: return user.bodyFatPercentage != nil
         case 5: return user.goal != nil
@@ -262,12 +273,17 @@ struct OnboardingView: View {
     private func getValidationMessage() -> String {
         switch currentStep {
         case 2:
-            if user.age == nil && user.sex == nil {
-                return "Насаа болон хүйсээ оруулна уу"
-            } else if user.age == nil {
-                return "Насаа оруулна уу"
-            } else if user.sex == nil {
-                return "Хүйсээ сонгоно уу"
+            var missing: [String] = []
+            if user.age == nil { missing.append("нас") }
+            if user.sex == nil { missing.append("хүйс") }
+            if user.activityLevel == nil { missing.append("идэвхийн түвшин") }
+            
+            if missing.count == 3 {
+                return "Нас, хүйс болон идэвхийн түвшинээ оруулна уу"
+            } else if missing.count == 2 {
+                return "Та \(missing[0]) болон \(missing[1])ээ оруулна уу"
+            } else if missing.count == 1 {
+                return "Та \(missing[0])аа оруулна уу"
             }
         case 3:
             if user.height == nil && user.weight == nil {
@@ -323,6 +339,59 @@ struct OnboardingView: View {
             } catch {
                 isLoading = false
             }
+        }
+    }
+    
+    private func getMaxAllowedStep() -> Int {
+        // Users can only progress to the next step if current step is valid
+        var maxStep = 1
+        
+        // Step 1 is always accessible
+        maxStep = 1
+        
+        // Step 2 is accessible after Step 1 is complete (always true for Step 1)
+        maxStep = 2
+        
+        // Step 3 is accessible only if Step 2 is complete
+        if user.age != nil && user.sex != nil && user.activityLevel != nil {
+            maxStep = 3
+        }
+        
+        // Step 4 is accessible only if Step 3 is complete
+        if maxStep >= 3 && user.height != nil && user.weight != nil {
+            maxStep = 4
+        }
+        
+        // Step 5 is accessible only if Step 4 is complete
+        if maxStep >= 4 && user.bodyFatPercentage != nil {
+            maxStep = 5
+        }
+        
+        // Step 6 is accessible only if Step 5 is complete
+        if maxStep >= 5 && user.goal != nil {
+            maxStep = 6
+        }
+        
+        // Step 7 is accessible only if Step 6 is complete
+        if maxStep >= 6 && user.goalWeight != nil && user.daysToComplete != nil {
+            maxStep = 7
+        }
+        
+        // Step 8 is accessible only if Step 7 is complete
+        if maxStep >= 7 {
+            maxStep = 8
+        }
+        
+        return maxStep
+    }
+    
+    private func getStepColor(for step: Int) -> Color {
+        let maxAllowed = getMaxAllowedStep()
+        
+        if step <= maxAllowed {
+            return Color.blue
+        } else {
+            return Color.gray.opacity(0.3)
         }
     }
 }

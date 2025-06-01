@@ -99,7 +99,23 @@ class ProfileViewModel: ObservableObject {
     
     /// Change selected tab
     func selectTab(_ tab: Int) {
-        selectedTab = tab
+        // Only change if it's a different tab
+        if selectedTab != tab {
+            print("🔄 ProfileViewModel: Switching from tab \(selectedTab) to tab \(tab)")
+            
+            // Clear navigation path when switching tabs to prevent conflicts
+            if !navigationPath.isEmpty {
+                navigationPath = NavigationPath()
+            }
+            
+            selectedTab = tab
+            
+            // Add small delay to ensure state is properly updated
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                // Force UI update if needed
+                self.objectWillChange.send()
+            }
+        }
     }
     
     /// Show delete confirmation

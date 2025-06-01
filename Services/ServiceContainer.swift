@@ -2,7 +2,7 @@
 //  ServiceContainer.swift
 //  BeFit
 //
-//  Created by AI Assistant on 5/8/25.
+//  Created by Chinguun Khongor on 5/8/25.
 //
 
 import Foundation
@@ -27,7 +27,13 @@ class ServiceContainer {
     lazy var nutritionDataService: NutritionDataServiceProtocol = NutritionDataService()
     
     /// Image storage service
-    lazy var imageStorageService: ImageStorageServiceProtocol = FirebaseStorageService()
+    lazy var imageStorageService: ImageStorageServiceProtocol = ImageStorageService()
+    
+    /// Meal verification service
+    lazy var mealVerificationService: MealVerificationServiceProtocol = MealVerificationService()
+    
+    /// Verified meal service
+    lazy var verifiedMealService: VerifiedMealServiceProtocol = VerifiedMealService()
     
     /// Notification view model (can be accessed directly)
     @MainActor lazy var notificationViewModel: NotificationViewModel = ViewModelFactory.createNotificationViewModel()

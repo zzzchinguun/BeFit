@@ -47,7 +47,7 @@ struct WeightProgressView: View {
     @AppStorage("isDarkMode") private var isDarkMode = false
     
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 16) {
             // Header
             Text("Жингийн Ахиц")
                 .font(.title)
@@ -62,86 +62,78 @@ struct WeightProgressView: View {
             .padding(.horizontal)
             
             if selectedView == 0 {
-                ScrollView {
-                    progressChartView
-                        .padding(.bottom, 20)
-                }
+                progressChartView
             } else {
-                ScrollView {
-                    calendarView
-                        .padding(.bottom, 20)
-                }
+                calendarView
             }
             
-            // Add spacing at the bottom to prevent overlap with tab bar
-            Spacer().frame(height: 60)
+            Spacer()
         }
         .padding(.horizontal)
         .preferredColorScheme(isDarkMode ? .dark : .light)
     }
     
     private var progressChartView: some View {
-        VStack(spacing: 24) {
-            if viewModel.weightLogs.count < 2 {
-                VStack(spacing: 12) {
-                    Image(systemName: "chart.line.uptrend.xyaxis")
-                        .font(.system(size: 40))
-                        .foregroundColor(.gray)
-                    
-                    Text("Хангалттай өгөгдөл байхгүй")
-                        .font(.headline)
-                    
-                    Text("Ахицаа харахын тулд дор хаяж хоёр жингийн бичлэг оруулна уу")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 40)
-            } else {
-                // Time range selector
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(WeightTimeRange.allCases, id: \.self) { timeRange in
-                            Button {
-                                withAnimation {
-                                    selectedTimeRange = timeRange
+        ScrollView {
+            VStack(spacing: 20) {
+                if viewModel.weightLogs.count < 2 {
+                    VStack(spacing: 12) {
+                        Image(systemName: "chart.line.uptrend.xyaxis")
+                            .font(.system(size: 40))
+                            .foregroundColor(.gray)
+                        
+                        Text("Хангалттай өгөгдөл байхгүй")
+                            .font(.headline)
+                        
+                        Text("Ахицаа харахын тулд дор хаяж хоёр жингийн бичлэг оруулна уу")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 30)
+                } else {
+                    // Time range selector
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(WeightTimeRange.allCases, id: \.self) { timeRange in
+                                Button {
+                                    withAnimation {
+                                        selectedTimeRange = timeRange
+                                    }
+                                } label: {
+                                    Text(timeRange.displayName)
+                                        .font(.caption)
+                                        .fontWeight(selectedTimeRange == timeRange ? .bold : .regular)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            selectedTimeRange == timeRange ?
+                                            Color.blue :
+                                            Color.gray.opacity(0.2)
+                                        )
+                                        .foregroundColor(selectedTimeRange == timeRange ? .white : .primary)
+                                        .clipShape(Capsule())
                                 }
-                            } label: {
-                                Text(timeRange.displayName)
-                                    .font(.caption)
-                                    .fontWeight(selectedTimeRange == timeRange ? .bold : .regular)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(
-                                        selectedTimeRange == timeRange ?
-                                        Color.blue :
-                                        Color.gray.opacity(0.2)
-                                    )
-                                    .foregroundColor(selectedTimeRange == timeRange ? .white : .primary)
-                                    .clipShape(Capsule())
                             }
                         }
+                        .padding(.horizontal)
                     }
-                    .padding(.vertical, 4)
+                    
+                    // Progress chart
+                    weightChartView
+                    
+                    // Stats section
+                    weightProgressStatsView
+                        .padding(.horizontal)
                 }
-                .padding(.horizontal)
-                
-                // Progress chart
-                weightChartView
-                    .frame(height: 240)
-                    .padding(.horizontal)
-                
-                // Stats section
-                weightProgressStatsView
-                    .padding(.horizontal)
             }
         }
     }
     
     private var weightChartView: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Жин")
                 .font(.headline)
             
@@ -165,10 +157,11 @@ struct WeightProgressView: View {
                 }
                 .chartYScale(domain: getYAxisRange())
                 .chartXAxis {
-                    AxisMarks(preset: .aligned, values: .automatic(desiredCount: 5)) { value in
+                    AxisMarks(preset: .aligned, values: .automatic(desiredCount: getDesiredAxisCount())) { value in
                         if let date = value.as(Date.self) {
                             AxisGridLine().foregroundStyle(Color.gray.opacity(0.2))
                             AxisValueLabel(formatDate(date), anchor: .top)
+                                .font(.caption2)
                         }
                     }
                 }
@@ -178,21 +171,21 @@ struct WeightProgressView: View {
                         AxisValueLabel()
                     }
                 }
-                .frame(height: 200)
-                .padding(.top, 5)
+                .frame(height: 220)
             } else {
                 Text("Сонгосон хугацаанд өгөгдөл байхгүй")
                     .font(.subheadline)
                     .foregroundColor(.gray)
-                    .frame(maxWidth: .infinity, maxHeight: 200)
+                    .frame(maxWidth: .infinity, maxHeight: 180)
                     .background(Color(.secondarySystemBackground))
                     .cornerRadius(10)
             }
         }
-        .padding()
+        .padding(16)
         .background(Color(.secondarySystemBackground))
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .padding(.horizontal)
     }
     
     private var weightProgressStatsView: some View {
@@ -224,22 +217,26 @@ struct WeightProgressView: View {
     }
     
     private var calendarView: some View {
-        VStack(spacing: 16) {
-            // Calendar view
-            WeightCalendarView(
-                weightLogs: viewModel.weightLogs,
-                selectedDate: $selectedDate
-            )
-            
-            // Selected day detail
-            if let selectedDate = selectedDate, 
-               let selectedLog = viewModel.weightLogs.first(where: { Calendar.current.isDate($0.date, inSameDayAs: selectedDate) }) {
-                WeightLogDetailCard(log: selectedLog)
-            } else {
-                Text("Дэлгэрэнгүй харахын тулд огноо сонгоно уу")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .padding()
+        ScrollView {
+            VStack(spacing: 16) {
+                // Calendar view
+                WeightCalendarView(
+                    weightLogs: viewModel.weightLogs,
+                    selectedDate: $selectedDate
+                )
+                
+                // Selected day detail
+                if let selectedDate = selectedDate, 
+                   let selectedLog = viewModel.weightLogs.first(where: { Calendar.current.isDate($0.date, inSameDayAs: selectedDate) }) {
+                    WeightLogDetailCard(log: selectedLog)
+                        .padding(.horizontal)
+                } else {
+                    Text("Дэлгэрэнгүй харахын тулд огноо сонгоно уу")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
+                }
             }
         }
     }
@@ -311,7 +308,9 @@ struct WeightProgressView: View {
         let formatter = DateFormatter()
         
         switch selectedTimeRange {
-        case .week, .month:
+        case .week:
+            formatter.dateFormat = "d/M"  // Shorter format for weekly view
+        case .month:
             formatter.dateFormat = "d MMM"
         case .threeMonths, .sixMonths:
             formatter.dateFormat = "d MMM"
@@ -320,6 +319,19 @@ struct WeightProgressView: View {
         }
         
         return formatter.string(from: date)
+    }
+    
+    private func getDesiredAxisCount() -> Int {
+        switch selectedTimeRange {
+        case .week:
+            return 3  // Show fewer ticks for weekly view to avoid overcrowding
+        case .month:
+            return 4
+        case .threeMonths, .sixMonths:
+            return 3
+        case .year, .all:
+            return 5
+        }
     }
 }
 
@@ -445,9 +457,10 @@ struct WeightCalendarView: View {
             }
             .padding(.horizontal)
         }
-        .padding()
+        .padding(16)
         .background(Color(.secondarySystemBackground))
         .cornerRadius(12)
+        .padding(.horizontal)
     }
     
     private var days: [Date] {

@@ -2,7 +2,7 @@
 //  DependencyInjection.swift
 //  BeFit
 //
-//  Created by AI Assistant on 5/8/25.
+//  Created by Chinguun Khongor on 5/8/25.
 //
 
 import Foundation
@@ -48,6 +48,12 @@ struct ViewModelFactory {
     @MainActor
     static func createNotificationViewModel() -> NotificationViewModel {
         return NotificationViewModel()
+    }
+    
+    /// Creates a MealVerificationViewModel on the main actor
+    @MainActor
+    static func createMealVerificationViewModel() -> MealVerificationViewModel {
+        return MealVerificationViewModel(mealVerificationService: ServiceContainer.shared.mealVerificationService)
     }
 }
 

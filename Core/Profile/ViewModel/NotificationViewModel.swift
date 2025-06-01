@@ -2,7 +2,7 @@
 //  NotificationViewModel.swift
 //  BeFit
 //
-//  Created by AI Assistant
+//  Created by Chinguun Khongor
 //
 
 import Foundation

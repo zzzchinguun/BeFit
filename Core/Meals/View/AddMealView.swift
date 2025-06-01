@@ -2,7 +2,7 @@
 //  AddMealView.swift
 //  BeFit
 //
-//  Created by AI Assistant on 3/31/25.
+//  Created by Chinguun Khongor on 3/31/25.
 //
 
 import SwiftUI
@@ -12,7 +12,6 @@ struct AddMealView: View {
     @Environment(\.dismiss) private var dismiss
     var onInputFocus: ()-> Void
     @State private var mealName = ""
-    @State private var calories = ""
     @State private var protein = ""
     @State private var carbs = ""
     @State private var fat = ""
@@ -21,12 +20,20 @@ struct AddMealView: View {
     @State private var showingStatusSheet = false
     @State private var statusMessage = ""
     @State private var isError = false
-    @State private var isAutoCalculateEnabled = true
     
     // Constants for calorie calculation
     private let proteinCaloriesPerGram = 4
     private let carbsCaloriesPerGram = 4
     private let fatCaloriesPerGram = 9
+    
+    // Calculated calories based on macros (4 cal/g protein, 4 cal/g carbs, 9 cal/g fat)
+    private var calculatedCalories: Int {
+        let proteinValue = Double(protein) ?? 0
+        let carbsValue = Double(carbs) ?? 0
+        let fatValue = Double(fat) ?? 0
+        
+        return Int((proteinValue * 4) + (carbsValue * 4) + (fatValue * 9))
+    }
     
     var body: some View {
         NavigationStack {
@@ -57,11 +64,6 @@ struct AddMealView: View {
                             .frame(width: 16, height: 24)
                         TextField("Уураг (г)", text: $protein)
                             .keyboardType(.numberPad)
-                            .onChange(of: protein) { _, _ in
-                                if isAutoCalculateEnabled {
-                                    calculateCalories()
-                                }
-                            }
                             .onTapGesture {
                                 onInputFocus()
                             }
@@ -74,11 +76,6 @@ struct AddMealView: View {
                             .frame(width: 16, height: 24)
                         TextField("Нүүрс ус (г)", text: $carbs)
                             .keyboardType(.numberPad)
-                            .onChange(of: carbs) { _, _ in
-                                if isAutoCalculateEnabled {
-                                    calculateCalories()
-                                }
-                            }
                             .onTapGesture {
                                 onInputFocus()
                             }
@@ -91,11 +88,6 @@ struct AddMealView: View {
                             .frame(width: 16, height: 24)
                         TextField("Өөх тос (г)", text: $fat)
                             .keyboardType(.numberPad)
-                            .onChange(of: fat) { _, _ in
-                                if isAutoCalculateEnabled {
-                                    calculateCalories()
-                                }
-                            }
                             .onTapGesture {
                                 onInputFocus()
                             }
@@ -107,11 +99,6 @@ struct AddMealView: View {
                             .frame(width: 16, height: 24)
                         TextField("Жин (г)", text: $weight)
                             .keyboardType(.decimalPad)
-                            .onChange(of: weight) { _, _ in
-                                if isAutoCalculateEnabled {
-                                    calculateCalories()
-                                }
-                            }
                             .onTapGesture {
                                 onInputFocus()
                             }
@@ -121,11 +108,18 @@ struct AddMealView: View {
                         Image(systemName: "flame.fill")
                             .foregroundColor(.orange)
                             .frame(width: 16, height: 24)
-                        TextField("Калори", text: $calories)
-                            .keyboardType(.numberPad)
-                            .onTapGesture {
-                                onInputFocus()
-                            }
+                        Text("\(calculatedCalories)")
+                            .font(.body)
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8)
+                        
+                        Text("ккал (автомат тооцоо)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
                     
                     
@@ -167,18 +161,7 @@ struct AddMealView: View {
     private func macroHeaderView() -> some View {
         HStack {
             Text("Тэжээллэг чанар")
-            
             Spacer()
-            
-            //            Toggle("Авто", isOn: $isAutoCalculateEnabled)
-            //                .labelsHidden()
-            //                .toggleStyle(SwitchToggleStyle(tint: .blue))
-            //                .scaleEffect(0.8)
-            //                .onChange(of: isAutoCalculateEnabled) { _, _ in
-            //                    if isAutoCalculateEnabled {
-            //                        calculateCalories()
-            //                    }
-            //                }
         }
     }
     
@@ -204,7 +187,7 @@ struct AddMealView: View {
                 Spacer()
                 
                 VStack(alignment: .trailing) {
-                    Text("\(calories.isEmpty ? "0" : calories) ккал")
+                    Text("\(calculatedCalories) ккал")
                         .font(.title3)
                         .fontWeight(.semibold)
                         .foregroundColor(.orange)
@@ -239,26 +222,11 @@ struct AddMealView: View {
         }
     }
     
-    private func calculateCalories() {
-        guard let weight = Double(weight),
-              let proteinValue = Double(protein),
-              let carbsValue = Double(carbs),
-              let fatValue = Double(fat) else {
-            calories = ""
-            return
-        }
-
-        let totalCaloriesPer100g = (proteinValue * Double(proteinCaloriesPerGram)) +
-                                   (carbsValue * Double(carbsCaloriesPerGram)) +
-                                   (fatValue * Double(fatCaloriesPerGram))
-
-        let calculatedCalories = (weight / 100.0) * totalCaloriesPer100g
-
-        calories = String(Int(calculatedCalories.rounded()))
-    }
-    
     private func addMeal() async {
-        guard let caloriesInt = Int(calories),
+        guard !mealName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !protein.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !carbs.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !fat.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               let proteinInt = Int(protein),
               let carbsInt = Int(carbs),
               let fatInt = Int(fat) else {
@@ -274,7 +242,7 @@ struct AddMealView: View {
         do {
             try await viewModel.addMeal(
                 name: mealName,
-                calories: caloriesInt,
+                calories: calculatedCalories,
                 protein: proteinInt,
                 carbs: carbsInt,
                 fat: fatInt,
@@ -299,7 +267,6 @@ struct AddMealView: View {
     
     private var formIsValid: Bool {
         return !mealName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !calories.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !protein.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !carbs.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !fat.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

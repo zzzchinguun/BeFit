@@ -33,12 +33,13 @@ struct Step1WelcomeView: View {
                     .fontWeight(.bold)
                     .multilineTextAlignment(.center)
                 
-                Text("Таны зорилго болон одоогийн фитнесс түвшинд тохируулан хувийн төлөвлөгөө боловсруулъя")
+                Text("Таны зорилго болон одоогийн фитнесс түвшинд\nтохируулан хувийн төлөвлөгөө боловсруулъя")
                     .font(.footnote)
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
                     .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             
             // Feature List

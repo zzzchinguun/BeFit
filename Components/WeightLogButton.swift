@@ -49,7 +49,7 @@ struct WeightLogButton: View {
                         lineWidth: 2
                     )
             )
-            .foregroundColor(Color.primary)
+            .foregroundColor(Color.primaryApp)
             .clipShape(Capsule())
         }
         .onAppear {

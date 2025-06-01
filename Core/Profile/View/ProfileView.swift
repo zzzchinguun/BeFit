@@ -17,6 +17,7 @@ struct ProfileView: View {
     @StateObject private var notificationViewModel = ViewModelFactory.createNotificationViewModel()
     @State private var showWeightLogSheet = false
     @State private var showNotificationsSheet = false
+    @State private var showMealVerificationSheet = false
     
     // MARK: - Body
     
@@ -52,19 +53,33 @@ struct ProfileView: View {
                     TabView(selection: $viewModel.selectedTab) {
                         dashboardView(user: user)
                             .tag(0)
+                            .onAppear {
+                                // Notify that we're switching to dashboard tab
+                                NotificationCenter.default.post(name: Notification.Name("tabSwitched"), object: "dashboard")
+                            }
                         
                         ExercisesView()
                             .tag(1)
+                            .onAppear {
+                                // Notify that we're switching to exercises tab
+                                NotificationCenter.default.post(name: Notification.Name("tabSwitched"), object: "exercises")
+                            }
                         
                         progressView
                             .tag(2)
                             .onAppear {
                                 // Refresh weight logs when the progress tab is shown
                                 weightLogViewModel.fetchWeightLogs()
+                                // Notify that we're switching to progress tab
+                                NotificationCenter.default.post(name: Notification.Name("tabSwitched"), object: "progress")
                             }
                             
                         profileDetailView(user: user)
                             .tag(3)
+                            .onAppear {
+                                // Notify that we're switching to profile tab
+                                NotificationCenter.default.post(name: Notification.Name("tabSwitched"), object: "profile")
+                            }
                     }
                     .tabViewStyle(.page(indexDisplayMode: .never))
                     
@@ -85,12 +100,23 @@ struct ProfileView: View {
             .onAppear {
                 viewModel.checkOnboardingNeeded()
                 weightLogViewModel.fetchWeightLogs()
+                
+                // Auto-trigger onboarding for new users - only if they truly need onboarding
+                // Use the same logic as the button display to ensure consistency
+                if viewModel.needsOnboarding && (user.goalWeight == nil || user.goalWeight == 0) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        viewModel.startOnboarding()
+                    }
+                }
             }
             .sheet(isPresented: $showWeightLogSheet) {
                 WeightLogSheet(viewModel: weightLogViewModel)
             }
             .sheet(isPresented: $showNotificationsSheet) {
                 NotificationsView(viewModel: notificationViewModel)
+            }
+            .sheet(isPresented: $showMealVerificationSheet) {
+                MealVerificationView()
             }
         }
     }
@@ -266,6 +292,22 @@ struct ProfileView: View {
                 .padding(.vertical, 8)
             }
             
+            // Super Admin Section (only for super admins)
+            if MealVerificationService.shared.isUserSuperAdmin(user) {
+                Section(viewModel.isEnglishLanguage ? "Super Admin" : "Супер админ") {
+                    Button {
+                        showMealVerificationSheet = true
+                    } label: {
+                        SettingsRowView(
+                            imageName: "checkmark.shield.fill",
+                            title: viewModel.isEnglishLanguage ? "Verify Meals" : "Хоол батлах",
+                            tintColor: .orange,
+                            isDeleteButton: false
+                        )
+                    }
+                }
+            }
+            
             Section {
                 // Dark mode picker instead of a simple toggle
                 Picker(selection: $viewModel.appearanceMode) {
@@ -309,7 +351,7 @@ struct ProfileView: View {
                 Toggle(isOn: $viewModel.isEnglishLanguage) {
                     SettingsRowView(
                         imageName: "globe",
-                        title: viewModel.isEnglishLanguage ? "English" : "Монгол",
+                        title: viewModel.isEnglishLanguage ? "English(Beta)" : "Монгол(Beta)",
                         tintColor: .blue,
                         isDeleteButton: false
                     )
