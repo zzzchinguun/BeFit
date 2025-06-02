@@ -43,10 +43,13 @@ class NutritionDatabaseViewModel: ObservableObject {
     // MARK: - Setup
     
     private func setupSubscriptions() {
+        print("🔵 DEBUG: NutritionDatabaseViewModel setupSubscriptions() called")
+        
         // Subscribe to foods
         nutritionDataService.foods
             .receive(on: RunLoop.main)
             .sink { [weak self] foods in
+                print("🔵 DEBUG: ViewModel received \(foods.count) foods from service")
                 self?.foods = foods
             }
             .store(in: &cancellables)
@@ -55,6 +58,7 @@ class NutritionDatabaseViewModel: ObservableObject {
         nutritionDataService.filteredFoods
             .receive(on: RunLoop.main)
             .sink { [weak self] filteredFoods in
+                print("🔵 DEBUG: ViewModel received \(filteredFoods.count) filtered foods from service")
                 self?.filteredFoods = filteredFoods
             }
             .store(in: &cancellables)
@@ -63,6 +67,7 @@ class NutritionDatabaseViewModel: ObservableObject {
         nutritionDataService.isLoading
             .receive(on: RunLoop.main)
             .sink { [weak self] isLoading in
+                print("🔵 DEBUG: ViewModel isLoading state changed to: \(isLoading)")
                 self?.isLoading = isLoading
             }
             .store(in: &cancellables)
@@ -71,6 +76,7 @@ class NutritionDatabaseViewModel: ObservableObject {
         $searchText
             .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
             .sink { [weak self] text in
+                print("🔵 DEBUG: ViewModel forwarding search text: '\(text)'")
                 self?.nutritionDataService.searchQuery.send(text)
             }
             .store(in: &cancellables)
@@ -78,16 +84,21 @@ class NutritionDatabaseViewModel: ObservableObject {
         // Forward selected category to the service
         $selectedCategory
             .sink { [weak self] category in
+                print("🔵 DEBUG: ViewModel forwarding selected category: \(category?.rawValue ?? "nil")")
                 self?.nutritionDataService.selectedCategory.send(category)
             }
             .store(in: &cancellables)
+            
+        print("🔵 DEBUG: NutritionDatabaseViewModel setupSubscriptions() completed")
     }
     
     // MARK: - Public Methods
     
     /// Load foods from the service
     func loadFoods() {
+        print("🔵 DEBUG: NutritionDatabaseViewModel loadFoods() called")
         nutritionDataService.loadFoods()
+        print("🔵 DEBUG: NutritionDatabaseViewModel loadFoods() delegated to service")
     }
     
     /// Select a food category

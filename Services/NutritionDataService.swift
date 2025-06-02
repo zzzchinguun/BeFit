@@ -78,30 +78,35 @@ class NutritionDataService: NutritionDataServiceProtocol {
     
     /// Load foods from sample data, verified meals, user's unverified meals, and any custom foods from UserDefaults
     func loadFoods() {
+        print("🟡 DEBUG: NutritionDataService.loadFoods() called")
+        
         // Prevent multiple simultaneous loads
         guard !isLoading.value else {
-            print("🔄 Foods already loading, skipping duplicate request")
+            print("🔄 DEBUG: Foods already loading, skipping duplicate request")
             return
         }
         
+        print("🟡 DEBUG: Setting isLoading to true")
         isLoading.send(true)
         
-        print("🔄 Starting to load foods...")
+        print("🔄 DEBUG: Starting to load foods...")
         
         // Start with the sample foods from the static data
         var allFoods = NutritionData.sampleFoods
-        print("✅ Loaded \(allFoods.count) sample foods")
+        print("✅ DEBUG: Loaded \(allFoods.count) sample foods")
         
         // Load verified meals and user's unverified meals from Firebase
         Task {
             do {
+                print("🟡 DEBUG: Starting async task to load from Firebase")
+                
                 // Load verified meals from VerifiedMealService
                 await verifiedMealService.fetchVerifiedMeals()
                 let verifiedFoods = verifiedMealService.verifiedMeals.value
                 
                 await MainActor.run {
                     allFoods.append(contentsOf: verifiedFoods)
-                    print("✅ Loaded \(verifiedFoods.count) verified meals")
+                    print("✅ DEBUG: Loaded \(verifiedFoods.count) verified meals")
                 }
                 
                 // Load user's unverified meals so they can see their pending submissions
@@ -111,7 +116,7 @@ class NutritionDataService: NutritionDataServiceProtocol {
                 
                 await MainActor.run {
                     allFoods.append(contentsOf: userUnverifiedFoods)
-                    print("✅ Loaded \(userUnverifiedMeals.count) user's own unverified meals")
+                    print("✅ DEBUG: Loaded \(userUnverifiedMeals.count) user's own unverified meals")
                 }
                 
                 // Load any custom foods saved locally (legacy support)
@@ -119,41 +124,50 @@ class NutritionDataService: NutritionDataServiceProtocol {
                    let customFoods = try? JSONDecoder().decode([NutritionData].self, from: data) {
                     await MainActor.run {
                         allFoods.append(contentsOf: customFoods)
-                        print("✅ Loaded \(customFoods.count) custom foods from UserDefaults")
+                        print("✅ DEBUG: Loaded \(customFoods.count) custom foods from UserDefaults")
                     }
+                } else {
+                    print("🟡 DEBUG: No custom foods found in UserDefaults")
                 }
                 
                 // Remove duplicates and update on main thread
                 await MainActor.run {
+                    print("🟡 DEBUG: Removing duplicates from \(allFoods.count) total foods")
                     let uniqueFoods = self.removeDuplicateFoods(allFoods)
-                    print("✅ Total foods loaded after deduplication: \(uniqueFoods.count)")
+                    print("✅ DEBUG: Total foods loaded after deduplication: \(uniqueFoods.count)")
                     
-                    // Update the published foods
+                    // Update the published foods on main thread
+                    print("🟡 DEBUG: Sending \(uniqueFoods.count) foods to publisher")
                     self.foods.send(uniqueFoods)
                     
-                    // Apply initial filters
+                    // Apply initial filters on main thread
+                    print("🟡 DEBUG: Applying initial filters")
                     self.filterFoods(category: self.selectedCategory.value, searchText: self.searchQuery.value)
                     
-                    print("✅ Foods loading completed")
+                    print("✅ DEBUG: Foods loading completed")
                     
-                    // Clear loading state
+                    // Clear loading state on main thread
+                    print("🟡 DEBUG: Setting isLoading to false")
                     self.isLoading.send(false)
                 }
                 
             } catch {
-                print("❌ Error loading foods: \(error.localizedDescription)")
+                print("❌ DEBUG: Error loading foods: \(error.localizedDescription)")
                 
                 await MainActor.run {
                     // Even if Firebase fails, we still have sample foods
                     let uniqueFoods = self.removeDuplicateFoods(allFoods)
+                    print("🟡 DEBUG: Fallback - sending \(uniqueFoods.count) foods to publisher")
                     self.foods.send(uniqueFoods)
                     self.filterFoods(category: self.selectedCategory.value, searchText: self.searchQuery.value)
                     
-                    // Clear loading state
+                    // Clear loading state on main thread
+                    print("🟡 DEBUG: Setting isLoading to false (after error)")
                     self.isLoading.send(false)
                 }
             }
         }
+        print("🟡 DEBUG: NutritionDataService.loadFoods() main thread execution completed")
     }
     
     /// Filter foods based on category and search text
@@ -231,8 +245,15 @@ class NutritionDataService: NutritionDataServiceProtocol {
                     // Reapply filters
                     self.filterFoods(category: self.selectedCategory.value, searchText: self.searchQuery.value)
                     
-                    // Notify other parts of the app to refresh (reduced frequency)
-                    NotificationCenter.default.post(name: Notification.Name("refreshNutritionDatabase"), object: nil)
+                    // Only notify if not currently loading to prevent interference with sheet presentation
+                    if !self.isLoading.value {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            print("🟡 DEBUG: Posting refreshNutritionDatabase notification from addCustomFood")
+                            NotificationCenter.default.post(name: Notification.Name("refreshNutritionDatabase"), object: nil)
+                        }
+                    } else {
+                        print("🟡 DEBUG: Skipping refreshNutritionDatabase notification - currently loading")
+                    }
                 }
                 
                 // Provide user feedback that the meal was submitted for review
@@ -268,8 +289,15 @@ class NutritionDataService: NutritionDataServiceProtocol {
                     
                     print("✅ Saved to local storage as fallback")
                     
-                    // Reduced notifications
-                    NotificationCenter.default.post(name: Notification.Name("refreshNutritionDatabase"), object: nil)
+                    // Only post refresh notification if not currently loading
+                    if !self.isLoading.value {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            print("🟡 DEBUG: Posting refreshNutritionDatabase notification from addCustomFood fallback")
+                            NotificationCenter.default.post(name: Notification.Name("refreshNutritionDatabase"), object: nil)
+                        }
+                    } else {
+                        print("🟡 DEBUG: Skipping refreshNutritionDatabase notification - currently loading (fallback)")
+                    }
                     
                     // Notify user about fallback
                     NotificationCenter.default.post(
@@ -321,6 +349,7 @@ class NutritionDataService: NutritionDataServiceProtocol {
             let userMeals = try await mealVerificationService.fetchUserUnverifiedMeals(userId: userId)
             
             await MainActor.run {
+                print("🟡 DEBUG: Updating userUnverifiedMeals on main thread")
                 self.userUnverifiedMeals.send(userMeals)
             }
             

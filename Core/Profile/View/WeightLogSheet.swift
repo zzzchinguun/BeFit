@@ -29,20 +29,35 @@ struct WeightLogSheet: View {
                     .foregroundColor(.primary)
                 
                 // Weight slider
-                VStack(spacing: 10) {
+                VStack(alignment: .center, spacing: 10) {
                     Text(languageManager.isEnglishLanguage ? "Weight" : "Жин")
                         .font(.headline)
                         .fontWeight(.semibold)
                         .foregroundColor(.primary)
+                    HStack{
+                        Text("\(viewModel.newWeight, specifier: "%.1f") кг")
+                            .font(.title)
+                            .fontWeight(.bold)
+                            .foregroundColor(Color.primaryApp)
                     
-                    Text("\(viewModel.newWeight, specifier: "%.1f") кг")
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .foregroundColor(Color.primaryApp)
+                    Spacer()
+                        Stepper("\(viewModel.newWeight, specifier: "%.1f") кг", value: $viewModel.newWeight, in: 30...200, step: 0.1)
+                            .labelsHidden()
+                        
+                    }
                     
-                    Slider(value: $viewModel.newWeight, in: 30...200, step: 0.1)
-                        .accentColor(Color.primaryApp)
-                        .padding(.horizontal)
+                        Slider(value: $viewModel.newWeight, in: 30...200, step: 0.1)
+                            .accentColor(Color.primaryApp)
+
+                        
+//                            TextField("", value: $viewModel.newWeight, formatter: NumberFormatter.decimalFormatter)
+//                                .keyboardType(.decimalPad)
+//                                .frame(width: 80)
+//                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                            
+                            
+                        
+                    
                 }
                 .padding()
                 .background(
@@ -59,8 +74,11 @@ struct WeightLogSheet: View {
                         .foregroundColor(.primary)
                     
                     TextField(languageManager.isEnglishLanguage ? "Note about today's weight" : "Өнөөдрийн жингийн талаар тэмдэглэл", text: $viewModel.weightNote)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .font(.body)
+                        .padding(6)
+                         .overlay(
+                             RoundedRectangle(cornerRadius: 6)
+                                .stroke(Color.gray.opacity(0.5), lineWidth: 0.5)
+                         )
                 }
                 
                 // Error message if present
@@ -180,6 +198,16 @@ struct WeightLogSheet: View {
                 viewModel.resetForm()
             }
         }
+    }
+}
+
+extension NumberFormatter {
+    static var decimalFormatter: NumberFormatter {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 1
+        formatter.maximumFractionDigits = 1
+        return formatter
     }
 }
 

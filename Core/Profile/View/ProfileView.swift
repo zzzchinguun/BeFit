@@ -141,12 +141,10 @@ struct ProfileView: View {
                             .foregroundColor(.blue)
                     }
                     
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: -1) {
                         Text(languageManager.isEnglishLanguage ? "Hello," : "Сайн уу,")
-                            .font(.title2)
+                            .font(.headline)
                             .fontWeight(.medium)
-                            .foregroundColor(.secondary)
-                        
                         Text(user.firstName)
                             .font(.headline)
                             .fontWeight(.semibold)
@@ -467,6 +465,9 @@ struct ProfileView: View {
 }
 
 #Preview {
-    ProfileView()
-        .environmentObject(AuthViewModel())
+    let mockAuthViewModel = AuthViewModel()
+    mockAuthViewModel.currentUser = User.MOCK_USER
+    
+    return ProfileView()
+        .environmentObject(mockAuthViewModel)
 }

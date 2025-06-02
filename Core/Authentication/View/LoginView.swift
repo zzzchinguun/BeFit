@@ -38,7 +38,7 @@ struct LoginView: View {
             } else if errorMessage.contains("network") {
                 return "Интернэт холболтоо шалгана уу."
             } else if errorMessage.contains("deleted") || errorMessage.contains("not found") {
-                return "Энэ бүртгэл устгагдсан байна."
+                return "Та нэвтрэх нэр эсвэл нууц үгээ дахин шалгана у."
             } else if errorMessage.contains("invalid email") {
                 return "И-мэйл хаяг буруу байна."
             } else if errorMessage.contains("disabled") {

@@ -100,7 +100,10 @@ class AuthService: FirebaseService, AuthServiceProtocol {
         } catch let error as NSError {
             // Ensure userSession is nil on any error
             self.userSession = nil
-            self.currentUser.send(nil)
+            
+            await MainActor.run {
+                self.currentUser.send(nil)
+            }
             
             // Process error more specifically
             let firebaseError: FirebaseError
@@ -233,8 +236,10 @@ class AuthService: FirebaseService, AuthServiceProtocol {
     /// Fetches the current user's data from Firestore
     func fetchUser() async {
         guard let uid = auth.currentUser?.uid else { 
-            // Clear state if no current user
-            self.currentUser.send(nil)
+            // Clear state if no current user - ensure on main thread
+            await MainActor.run {
+                self.currentUser.send(nil)
+            }
             return 
         }
         
@@ -242,22 +247,38 @@ class AuthService: FirebaseService, AuthServiceProtocol {
             let snapshot = try await db.collection("users").document(uid).getDocument()
             
             if snapshot.exists, let user = try? snapshot.data(as: User.self) {
-                currentUser.send(user)
-                
-                // Notify about user change
-                NotificationCenter.default.post(name: Notification.Name("userSessionChanged"), object: user)
+                await MainActor.run {
+                    // Check if user data actually changed before posting notification
+                    let previousUser = self.currentUser.value
+                    let userChanged = previousUser?.id != user.id || 
+                                    previousUser?.firstName != user.firstName ||
+                                    previousUser?.lastName != user.lastName ||
+                                    previousUser?.email != user.email
+                    
+                    currentUser.send(user)
+                    
+                    // Only notify about user change if data actually changed
+                    if userChanged {
+                        print("🔵 DEBUG: User data changed, posting userSessionChanged notification")
+                        NotificationCenter.default.post(name: Notification.Name("userSessionChanged"), object: user)
+                    } else {
+                        print("🔵 DEBUG: User data unchanged, skipping userSessionChanged notification")
+                    }
+                }
             } else {
                 // User document doesn't exist - this is an inconsistent state
                 print("⚠️ User auth record exists but Firestore document is missing for \(uid)")
                 
-                // Clear state
-                currentUser.send(nil)
-                
-                // Post notification for auth reset
-                NotificationCenter.default.post(
-                    name: Notification.Name("forceAuthReset"), 
-                    object: FirebaseError.authError("Account not found or has been deleted")
-                )
+                await MainActor.run {
+                    // Clear state
+                    currentUser.send(nil)
+                    
+                    // Post notification for auth reset
+                    NotificationCenter.default.post(
+                        name: Notification.Name("forceAuthReset"), 
+                        object: FirebaseError.authError("Account not found or has been deleted")
+                    )
+                }
                 
                 // Try to clean up Firebase Auth state
                 try? await auth.currentUser?.delete()
@@ -266,8 +287,10 @@ class AuthService: FirebaseService, AuthServiceProtocol {
         } catch {
             print("DEBUG: Failed to fetch user with error: \(error.localizedDescription)")
             
-            // Clear current user on any fetch error
-            currentUser.send(nil)
+            // Clear current user on any fetch error - ensure on main thread
+            await MainActor.run {
+                currentUser.send(nil)
+            }
         }
     }
     

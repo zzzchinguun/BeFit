@@ -16,6 +16,8 @@ struct ContentView: View {
     @State private var hasTriedTestUser = false
     @State private var forceReset = false
     @State private var refreshID = UUID() // Add a refresh ID to force view refresh
+    @State private var lastRefreshTime = Date.distantPast // Track last refresh to debounce
+    @State private var isPresentingSheet = false // Track if any sheet is presented
     
     var body: some View {
         ZStack {
@@ -61,19 +63,55 @@ struct ContentView: View {
                 }
             }
             .onChange(of: authViewModel.userSession) { oldValue, newValue in
+                // Debounce rapid session changes to prevent sheet dismissal
+                let now = Date()
+                guard now.timeIntervalSince(lastRefreshTime) > 2.0 else {
+                    print("🚫 Skipping session change refresh - too soon (debounced)")
+                    return
+                }
+                
+                // Don't refresh if sheets are being presented
+                if isPresentingSheet {
+                    print("🚫 Skipping session change refresh - sheet is presented")
+                    return
+                }
+                
                 // Force view update when user session changes directly
                 print("User session changed directly: \(newValue != nil ? "logged in" : "logged out")")
+                lastRefreshTime = now
                 refreshID = UUID() // Generate new ID to force refresh
             }
             .onReceive(NotificationCenter.default.publisher(for: Notification.Name("userSessionChanged"))) { _ in
+                // Debounce rapid session changes to prevent sheet dismissal
+                let now = Date()
+                guard now.timeIntervalSince(lastRefreshTime) > 2.0 else {
+                    print("🚫 Skipping userSessionChanged notification - too soon (debounced)")
+                    return
+                }
+                
+                // Don't refresh if sheets are being presented
+                if isPresentingSheet {
+                    print("🚫 Skipping userSessionChanged notification - sheet is presented")
+                    return
+                }
+                
                 // Force view update when user session changes
                 print("User session changed notification received")
+                lastRefreshTime = now
                 refreshID = UUID() // Generate new ID to force refresh
             }
             .onReceive(NotificationCenter.default.publisher(for: Notification.Name("forceAuthReset"))) { _ in
                 // Emergency reset triggered from anywhere in the app
                 print("🔄 Force auth reset notification received")
                 resetAuthState()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("sheetPresented"))) { _ in
+                print("📋 Sheet presented - setting isPresentingSheet = true")
+                isPresentingSheet = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("sheetDismissed"))) { _ in
+                print("📋 Sheet dismissed - setting isPresentingSheet = false")
+                isPresentingSheet = false
             }
             
             // Show splash screen on top if needed

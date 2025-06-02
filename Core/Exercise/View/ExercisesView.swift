@@ -21,6 +21,14 @@ struct ExercisesView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                HStack{
+                Text(languageManager.isEnglishLanguage ? "Exercises" : "Дасгалууд")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                Spacer()
+                modernAddButton
+            }
+                .padding()
                 // Modern header with gradient
                 VStack(spacing: 16) {
                     // Enhanced search bar (without barcode scanner for exercises)
@@ -56,20 +64,10 @@ struct ExercisesView: View {
                             filteredCount: viewModel.filteredExercises.count,
                             isEnglishLanguage: languageManager.isEnglishLanguage
                         )
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal)
                     }
                 }
                 .padding(.vertical, 20)
-                .background(
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color.blue.opacity(0.1),
-                            Color.blue.opacity(0.05)
-                        ]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
                 
                 // Exercise list
                 if viewModel.filteredExercises.isEmpty {
@@ -78,19 +76,7 @@ struct ExercisesView: View {
                     modernExerciseList
                 }
             }
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Text(languageManager.isEnglishLanguage ? "Exercises" : "Дасгалууд")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    modernAddButton
-                }
-            }
+            
             .sheet(isPresented: $showingAddCustomExercise) {
                 ModernAddCustomExerciseView(viewModel: viewModel)
             }
@@ -255,7 +241,7 @@ struct ExercisesView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemGroupedBackground))
+//        .background(Color(.systemGroupedBackground))
     }
     
     // MARK: - Helper Methods
