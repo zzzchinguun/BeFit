@@ -332,7 +332,8 @@ struct Step6TimelineView: View {
     }
     
     private func getCalculationResult() -> (resultString: String, tdee: Double)? {
-        return FitnessCalculations.calculateTDEE(user: user)
+        guard let result = FitnessCalculations.calculateTDEE(user: user) else { return nil }
+        return (resultString: result.resultString, tdee: result.tdee)
     }
     
     private func calculateTargetCalories(currentWeight: Double, goalWeight: Double, days: Int) -> Int {

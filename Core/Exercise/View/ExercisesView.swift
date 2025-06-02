@@ -407,11 +407,11 @@ struct ModernExerciseCard: View {
     
     private func exerciseIcon(for category: ExerciseCategory) -> String {
         switch category {
-        case .compound: return "dumbbell.fill"
-        case .lowerBody: return "figure.walk"
-        case .upperBodyPush: return "arrow.up.circle.fill"
-        case .upperBodyPull: return "arrow.down.circle.fill"
-        case .core: return "circle.grid.cross.fill"
+        case .compound: return "figure.strengthtraining.traditional"
+        case .lowerBody: return "figure.highintensity.intervaltraining"
+        case .upperBodyPush: return "dumbbell.fill"
+        case .upperBodyPull: return "figure.play"
+        case .core: return "figure.core.training"
         case .custom: return "plus.circle.fill"
         }
     }

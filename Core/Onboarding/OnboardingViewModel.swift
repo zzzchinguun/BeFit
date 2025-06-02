@@ -22,8 +22,10 @@ class OnboardingViewModel: ObservableObject {
             bodyFatPercentage: user.bodyFatPercentage,
             goalWeight: user.goalWeight,
             daysToComplete: user.daysToComplete,
+            goalStartDate: Date(),
             goal: user.goal,
             tdee: user.tdee,
+            goalCalories: user.goalCalories,
             macros: user.macros
         )
     }

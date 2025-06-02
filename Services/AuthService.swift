@@ -218,10 +218,21 @@ class AuthService: FirebaseService, AuthServiceProtocol {
             throw FirebaseError.authError("No user is currently signed in")
         }
         
+        // Debug logging to track what's being sent to Firebase
+        print("🔄 AuthService: Updating Firebase with user ID: \(uid)")
+        print("   Data being sent to Firebase: \(userData)")
+        if let goalCalories = userData["goalCalories"] as? Double {
+            print("   goalCalories specifically: \(goalCalories)")
+        } else {
+            print("   ⚠️  goalCalories is missing from userData!")
+        }
+        
         do {
             // Get current user document
             let userRef = db.collection("users").document(uid)
             try await userRef.updateData(userData)
+            
+            print("✅ AuthService: Successfully updated Firebase document")
             
             // Fetch updated user data
             await fetchUser()
@@ -229,6 +240,7 @@ class AuthService: FirebaseService, AuthServiceProtocol {
             // Set onboarding completion flag
             UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
         } catch {
+            print("❌ AuthService: Firebase update failed with error: \(error.localizedDescription)")
             throw handleError(error)
         }
     }
@@ -253,7 +265,21 @@ class AuthService: FirebaseService, AuthServiceProtocol {
                     let userChanged = previousUser?.id != user.id || 
                                     previousUser?.firstName != user.firstName ||
                                     previousUser?.lastName != user.lastName ||
-                                    previousUser?.email != user.email
+                                    previousUser?.email != user.email ||
+                                    previousUser?.age != user.age ||
+                                    previousUser?.weight != user.weight ||
+                                    previousUser?.height != user.height ||
+                                    previousUser?.sex != user.sex ||
+                                    previousUser?.activityLevel != user.activityLevel ||
+                                    previousUser?.bodyFatPercentage != user.bodyFatPercentage ||
+                                    previousUser?.goalWeight != user.goalWeight ||
+                                    previousUser?.daysToComplete != user.daysToComplete ||
+                                    previousUser?.goal != user.goal ||
+                                    previousUser?.tdee != user.tdee ||
+                                    previousUser?.goalCalories != user.goalCalories ||
+                                    previousUser?.macros?.protein != user.macros?.protein ||
+                                    previousUser?.macros?.carbs != user.macros?.carbs ||
+                                    previousUser?.macros?.fat != user.macros?.fat
                     
                     currentUser.send(user)
                     

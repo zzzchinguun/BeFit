@@ -101,6 +101,7 @@ struct Step5GoalWeightDaysView: View {
                     }
                     .onAppear {
                         user.tdee = tdeeResult.tdee
+                        user.goalCalories = tdeeResult.goalCalories
                     }
                 } else {
                     Text("Тооцоолол хийхэд алдаа гарлаа")

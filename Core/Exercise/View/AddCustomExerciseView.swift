@@ -395,11 +395,11 @@ struct CategoryOptionCard: View {
     private func categoryDescription(for category: ExerciseCategory) -> String {
         switch category {
         case .compound: return "Олон булчин хамрах дасгал"
-        case .lowerBody: return "Доод биеийн дасгал"
-        case .upperBodyPush: return "Дээд биеийн түлхэх дасгал"
-        case .upperBodyPull: return "Дээд биеийн татах дасгал"
-        case .core: return "Гол булчны дасгал"
-        case .custom: return "Өөрийн дасгал"
+        case .lowerBody: return "Хөлний дасгал"
+        case .upperBodyPush: return "Түлхэх дасгал"
+        case .upperBodyPull: return "Татах дасгал"
+        case .core: return "Хэвлийн дасгал"
+        case .custom: return "Миний дасгал"
         }
     }
 }

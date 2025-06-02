@@ -24,7 +24,7 @@ protocol MealServiceProtocol {
     func updateMeal(_ meal: Meal) async throws
     func deleteMeal(_ meal: Meal) async throws
     func calculateTodayTotals() -> NutritionTotals
-    func calculateRemainingMacros(tdee: Int, targetProtein: Int, targetCarbs: Int, targetFat: Int) -> NutritionTotals
+    func calculateRemainingMacros(goalCalories: Int, targetProtein: Int, targetCarbs: Int, targetFat: Int) -> NutritionTotals
     func filterTodayMeals()
 }
 
@@ -215,10 +215,10 @@ class MealService: FirebaseService, MealServiceProtocol {
     }
     
     /// Calculate remaining nutrients for today
-    func calculateRemainingMacros(tdee: Int, targetProtein: Int, targetCarbs: Int, targetFat: Int) -> NutritionTotals {
+    func calculateRemainingMacros(goalCalories: Int, targetProtein: Int, targetCarbs: Int, targetFat: Int) -> NutritionTotals {
         let totals = todayNutrition.value
         
-        let remainingCalories = max(0, tdee - totals.calories)
+        let remainingCalories = max(0, goalCalories - totals.calories)
         let remainingProtein = max(0, targetProtein - totals.protein)
         let remainingCarbs = max(0, targetCarbs - totals.carbs)
         let remainingFat = max(0, targetFat - totals.fat)

@@ -97,12 +97,22 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    /// Update user fitness data
-    func updateUserFitnessData(age: Int?, weight: Double?, height: Double?,
-                             sex: String?, activityLevel: String?,
-                             bodyFatPercentage: Double?, goalWeight: Double?,
-                             daysToComplete: Int?, goal: String?,
-                             tdee: Double?, macros: Macros?) async throws {
+    /// Update user fitness data during onboarding
+    func updateUserFitnessData(
+        age: Int? = nil,
+        weight: Double? = nil,
+        height: Double? = nil,
+        sex: String? = nil,
+        activityLevel: String? = nil,
+        bodyFatPercentage: Double? = nil,
+        goalWeight: Double? = nil,
+        daysToComplete: Int? = nil,
+        goalStartDate: Date? = nil,
+        goal: String? = nil,
+        tdee: Double? = nil,
+        goalCalories: Double? = nil,
+        macros: Macros? = nil
+    ) async throws {
         // Create dictionary of updates
         var userData: [String: Any] = [:]
         
@@ -114,8 +124,10 @@ class AuthViewModel: ObservableObject {
         if let bodyFatPercentage = bodyFatPercentage { userData["bodyFatPercentage"] = bodyFatPercentage }
         if let goalWeight = goalWeight { userData["goalWeight"] = goalWeight }
         if let daysToComplete = daysToComplete { userData["daysToComplete"] = daysToComplete }
+        if let goalStartDate = goalStartDate { userData["goalStartDate"] = goalStartDate }
         if let goal = goal { userData["goal"] = goal }
         if let tdee = tdee { userData["tdee"] = tdee }
+        if let goalCalories = goalCalories { userData["goalCalories"] = goalCalories }
         if let macros = macros {
             userData["macros"] = [
                 "protein": macros.protein,
@@ -124,10 +136,19 @@ class AuthViewModel: ObservableObject {
             ]
         }
         
+        // Debug logging to track what's being saved
+        print("🔄 AuthViewModel: Updating user fitness data with:")
+        print("   goalCalories: \(goalCalories?.description ?? "nil")")
+        print("   tdee: \(tdee?.description ?? "nil")")
+        print("   goalWeight: \(goalWeight?.description ?? "nil")")
+        print("   goalStartDate: \(goalStartDate?.description ?? "nil")")
+        print("   userData dictionary: \(userData)")
+        
         do {
             try await authService.updateUserFitnessData(userData: userData)
+            print("✅ AuthViewModel: Successfully updated user fitness data")
         } catch {
-            print("DEBUG: Failed to update user data with error: \(error.localizedDescription)")
+            print("❌ AuthViewModel: Failed to update user data with error: \(error.localizedDescription)")
             throw error
         }
     }

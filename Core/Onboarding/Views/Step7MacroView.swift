@@ -11,7 +11,6 @@ struct Step7MacroView: View {
     @State private var showingSaveSuccess = false
     @State private var saveErrorMessage: String? = nil
     @State private var showingSaveError = false
-    @State private var photoDelegate: PhotoLibraryDelegate? // Store the delegate as state
     
     let macroPlans = [
         "balanced": (name: "Тэнцвэртэй", protein: 30, carbs: 40, fat: 30),
@@ -58,18 +57,11 @@ struct Step7MacroView: View {
                         if let currentWeight = user.weight,
                            let goalWeight = user.goalWeight,
                            let days = user.daysToComplete,
-                           days > 0 {
+                           days > 0,
+                           let calculationResult = FitnessCalculations.calculateTDEE(user: user) {
                             
-                            let weightDifference = goalWeight - currentWeight
-                            let isGaining = weightDifference > 0
-                            
-                            // Calculate simple TDEE estimate
-                            let tdeeEstimate = calculateSimpleTDEE()
-                            
-                            // Use EXACT SAME calculation as Step6TimelineView - no sugarcoating
-                            let totalCalorieChange = weightDifference * 7700
-                            let dailyCalorieChange = totalCalorieChange / Double(days)
-                            let targetCalories = Int(tdeeEstimate + dailyCalorieChange)
+                            let isGaining = goalWeight > currentWeight
+                            let targetCalories = Int(calculationResult.goalCalories)
                             
                             Divider()
                                 .padding(.vertical, 5)
@@ -92,7 +84,7 @@ struct Step7MacroView: View {
                     }
                     .padding()
                     .frame(maxWidth: .infinity)
-                    .background(Color(.secondarySystemBackground))
+                    .background(Color(UIColor.secondarySystemBackground))
                     .cornerRadius(15)
                 }
                 
@@ -172,7 +164,7 @@ struct Step7MacroView: View {
                             Image(systemName: "chevron.right")
                         }
                         .padding()
-                        .background(Color(.secondarySystemBackground))
+                        .background(Color(UIColor.secondarySystemBackground))
                         .cornerRadius(10)
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
@@ -220,7 +212,7 @@ struct Step7MacroView: View {
                         }
                     }
                     .padding()
-                    .background(Color(.secondarySystemBackground))
+                    .background(Color(UIColor.secondarySystemBackground))
                     .cornerRadius(15)
                 }
             }
@@ -270,12 +262,16 @@ struct Step7MacroView: View {
             .background(Color.white)
         )
         
-        if let uiImage = renderer.uiImage {
-            // Simplified success
-            showingSaveSuccess = true
-        } else {
-            saveErrorMessage = "Зураг үүсгэхэд алдаа гарлаа"
-            showingSaveError = true
+        renderer.scale = 3.0
+        
+        Task { @MainActor in
+            if let uiImage = renderer.uiImage {
+                // Simplified success
+                showingSaveSuccess = true
+            } else {
+                saveErrorMessage = "Зураг үүсгэхэд алдаа гарлаа"
+                showingSaveError = true
+            }
         }
     }
     
@@ -306,12 +302,14 @@ struct Step7MacroView: View {
     }
     
     private func updateUserMacros(plan: String) {
-        guard let tdee = calculateLocalTDEE() else { return }
+        // Use goal calories instead of TDEE for macro calculations
+        guard let calculationResult = FitnessCalculations.calculateTDEE(user: user) else { return }
         
+        let goalCalories = calculationResult.goalCalories
         let macroSplit = macroPlans[plan]!
-        let proteinCals = tdee * Double(macroSplit.protein) / 100
-        let carbsCals = tdee * Double(macroSplit.carbs) / 100
-        let fatCals = tdee * Double(macroSplit.fat) / 100
+        let proteinCals = goalCalories * Double(macroSplit.protein) / 100
+        let carbsCals = goalCalories * Double(macroSplit.carbs) / 100
+        let fatCals = goalCalories * Double(macroSplit.fat) / 100
         
         user.macros = Macros(
             protein: Int(proteinCals / 4),
@@ -321,7 +319,8 @@ struct Step7MacroView: View {
     }
     
     private func getCalculationResult() -> (resultString: String, tdee: Double)? {
-        return FitnessCalculations.calculateTDEE(user: user)
+        guard let result = FitnessCalculations.calculateTDEE(user: user) else { return nil }
+        return (resultString: result.resultString, tdee: result.tdee)
     }
     
     private func saveCalculationAsImage(_ resultString: String) {
@@ -343,12 +342,14 @@ struct Step7MacroView: View {
         
         renderer.scale = 3.0
         
-        if let uiImage = renderer.uiImage {
-            // Simplified success
-            showingSaveSuccess = true
-        } else {
-            saveErrorMessage = "Зураг үүсгэхэд алдаа гарлаа"
-            showingSaveError = true
+        Task { @MainActor in
+            if let uiImage = renderer.uiImage {
+                // Simplified success
+                showingSaveSuccess = true
+            } else {
+                saveErrorMessage = "Зураг үүсгэхэд алдаа гарлаа"
+                showingSaveError = true
+            }
         }
     }
     
@@ -525,7 +526,7 @@ struct MacroPlanCard: View {
             .padding()
             .background(
                 RoundedRectangle(cornerRadius: 15)
-                    .fill(isSelected ? Color.blue : Color(.secondarySystemBackground))
+                    .fill(isSelected ? Color.blue : Color(UIColor.secondarySystemBackground))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 15)
@@ -603,11 +604,12 @@ struct CustomMacrosView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 25) {
-                    if let tdee = calculateCustomTDEE() {
+                    // Show goal calories instead of TDEE
+                    if let calculationResult = FitnessCalculations.calculateTDEE(user: user) {
                         VStack(spacing: 5) {
-                            Text("Өдрийн илчлэг")
+                            Text("Өдрийн зорилтот илчлэг")
                                 .font(.headline)
-                            Text("\(Int(tdee))")
+                            Text("\(Int(calculationResult.goalCalories))")
                                 .font(.system(size: 36, weight: .bold))
                                 .foregroundColor(.blue)
                         }
@@ -696,11 +698,13 @@ struct CustomMacrosView: View {
     }
     
     private func saveCustomMacros() {
-        guard let tdee = calculateCustomTDEE() else { return }
+        // Use goal calories instead of TDEE for custom macro calculations
+        guard let calculationResult = FitnessCalculations.calculateTDEE(user: user) else { return }
         
-        let proteinCals = tdee * protein / 100
-        let carbsCals = tdee * carbs / 100
-        let fatCals = tdee * fat / 100
+        let goalCalories = calculationResult.goalCalories
+        let proteinCals = goalCalories * protein / 100
+        let carbsCals = goalCalories * carbs / 100
+        let fatCals = goalCalories * fat / 100
         
         user.macros = Macros(
             protein: Int(proteinCals / 4),
@@ -791,6 +795,6 @@ struct MacroRow: View {
 }
 
 #Preview {
-    Step7MacroView(user: .constant(User(id: "", firstName: "", lastName: "", email: "")))
+    Step7MacroView(user: .constant(User.MOCK_USER))
 }
 

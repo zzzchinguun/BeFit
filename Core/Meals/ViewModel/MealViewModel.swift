@@ -121,9 +121,9 @@ class MealViewModel: ObservableObject {
     }
     
     /// Calculate remaining nutrients for today
-    func calculateRemainingMacros(tdee: Int, targetProtein: Int, targetCarbs: Int, targetFat: Int) -> NutritionTotals {
+    func calculateRemainingMacros(goalCalories: Int, targetProtein: Int, targetCarbs: Int, targetFat: Int) -> NutritionTotals {
         return mealService.calculateRemainingMacros(
-            tdee: tdee,
+            goalCalories: goalCalories,
             targetProtein: targetProtein,
             targetCarbs: targetCarbs,
             targetFat: targetFat

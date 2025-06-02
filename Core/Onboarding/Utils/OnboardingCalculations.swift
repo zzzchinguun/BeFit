@@ -12,7 +12,7 @@ struct FitnessCalculations {
     }
     
     // MARK: - TDEE Calculation (Legion Athletics Method)
-    static func calculateTDEE(user: User) -> (resultString: String, tdee: Double)? {
+    static func calculateTDEE(user: User) -> (resultString: String, tdee: Double, goalCalories: Double)? {
         guard let weight = user.weight,
               let height = user.height,
               let age = user.age,
@@ -65,8 +65,9 @@ struct FitnessCalculations {
         """
         
         let weightDifference = goalWeight - weight
+        var goalCalories = tdee // Default to maintenance if no weight change
         
-        if goal == "Жин хасах" && weightDifference < 0 {
+        if goal == "Жин хасах" || weightDifference < 0 {
             // Legion Athletics Weight Loss Method
             let totalWeightLoss = abs(weightDifference)
             let weeksToComplete = Double(daysToComplete) / 7.0
@@ -79,6 +80,7 @@ struct FitnessCalculations {
             
             // Legion's target calories (what they recommend to reach goal)
             let targetCalories = Int(tdee - dailyCalorieDeficit)
+            goalCalories = Double(targetCalories) // Store the goal calories
             let deficitPercentage = (dailyCalorieDeficit / tdee) * 100
             
             // Legion's conservative recommendations  
@@ -149,6 +151,7 @@ struct FitnessCalculations {
             let weeklyGain = weightDifference / (Double(daysToComplete) / 7.0)
             let calorieSurplus = weeklyGain * 7700 / 7 // Daily surplus needed
             let targetCalories = Int(tdee + calorieSurplus)
+            goalCalories = Double(targetCalories) // Store the goal calories
             
             // Estimate muscle vs fat gain (assumes good training and nutrition)
             let muscleGainRatio: Double = weeklyGain <= 0.5 ? 0.75 : 0.5 // 75% muscle if slow gain
@@ -186,7 +189,7 @@ struct FitnessCalculations {
             }
         }
         
-        return (resultString: resultString, tdee: tdee)
+        return (resultString: resultString, tdee: tdee, goalCalories: goalCalories)
     }
     
     // MARK: - Body Composition Calculations

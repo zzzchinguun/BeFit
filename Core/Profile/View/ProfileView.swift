@@ -226,8 +226,8 @@ struct ProfileView: View {
                 ], spacing: 20) {
                     metricCard(title: languageManager.isEnglishLanguage ? "Current Weight" : "Одоогийн жин", value: "\(Int(user.weight ?? 0))кг", icon: "scalemass.fill")
                     metricCard(title: languageManager.isEnglishLanguage ? "Target Weight" : "Зорилтот жин", value: "\(Int(user.goalWeight ?? 0))кг", icon: "target")
-                    metricCard(title: languageManager.isEnglishLanguage ? "Days Remaining" : "Үлдсэн өдөр", value: "\(user.daysToComplete ?? 0)", icon: "calendar")
-                    metricCard(title: languageManager.isEnglishLanguage ? "Daily Calories" : "Өдрийн илчлэг", value: "\(Int(user.tdee ?? 0))", icon: "flame.fill")
+                    metricCard(title: languageManager.isEnglishLanguage ? "Days Remaining" : "Үлдсэн өдөр", value: "\(user.remainingDays)", icon: "calendar")
+                    metricCard(title: languageManager.isEnglishLanguage ? "Daily Calories" : "Өдрийн илчлэг", value: "\(Int(user.goalCalories ?? user.tdee ?? 0))", icon: "flame.fill")
                 }
                 .padding(.horizontal)
                 

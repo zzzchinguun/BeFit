@@ -19,6 +19,7 @@ struct SettingsRowView: View {
                 .imageScale(.small)
                 .font(.title)
                 .foregroundStyle(tintColor)
+                .frame(width: 20)
             
             Text(title)
                 .font(.subheadline)

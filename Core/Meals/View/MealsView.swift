@@ -162,7 +162,7 @@ struct MealsView: View {
                         ))
                         .contentTransition(.numericText())
                     
-                    Text("/ \(Int(authViewModel.currentUser?.tdee ?? 0))")
+                    Text("/ \(Int(authViewModel.currentUser?.goalCalories ?? authViewModel.currentUser?.tdee ?? 0))")
                         .font(.title3)
                         .foregroundColor(.secondary)
                 }
@@ -368,7 +368,7 @@ struct MealsView: View {
     
     private var caloriesTodayPercentage: CGFloat {
         let caloriesConsumed = viewModel.todayNutrition.calories
-        let caloriesTarget = Int(authViewModel.currentUser?.tdee ?? 1)
+        let caloriesTarget = Int(authViewModel.currentUser?.goalCalories ?? authViewModel.currentUser?.tdee ?? 1)
         return min(CGFloat(caloriesConsumed) / CGFloat(caloriesTarget), 1.0)
     }
 }

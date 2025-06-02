@@ -131,13 +131,13 @@ enum ExerciseCategory: String, Codable, CaseIterable, Identifiable {
         case .compound:
             return "Цогц дасгал"
         case .lowerBody:
-            return "Доод биеийн дасгал"
+            return "Хөлний дасгал"
         case .upperBodyPush:
-            return "Дээд биеийн түлхэх"
+            return "Түлхэх дасгал"
         case .upperBodyPull:
-            return "Дээд биеийн татах"
+            return "Татах дасгал"
         case .core:
-            return "Кор дасгал"
+            return "Хэвлийн дасгал"
         case .custom:
             return "Миний дасгал"
         }

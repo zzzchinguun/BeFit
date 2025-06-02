@@ -110,13 +110,13 @@ class NotificationHandler: NSObject, UNUserNotificationCenterDelegate, Observabl
                 let lastNotificationTime = UserDefaults.standard.double(forKey: lastNotificationKey)
                 
                 // Check if 24 hours have passed since the last notification
-                if (currentTime - lastNotificationTime) > 24 * 60 * 60 {
+                if (currentTime - lastNotificationTime) > 24 * 60 * 60{
                     // Only if there are no unread notifications
                     if notificationViewModel.unreadCount == 0 {
                         // Schedule a weight reminder notification for the next day
                         notificationViewModel.scheduleNotification(
                             title: "Жин бүртгэх",
-                            body: "Өнөөдрийн жингээ бүртгээгүй байна!",
+                            body: "Өглөө бүр жингээ бүртгээд ахицаа хянаарай",
                             timeInterval: 24 * 60 * 60, // Schedule for 24 hours later
                             categoryIdentifier: "WEIGHT_CATEGORY"
                         )
