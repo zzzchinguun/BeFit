@@ -2,7 +2,7 @@
 //  MealViewModel.swift
 //  BeFit
 //
-//  Created by AI Assistant on 3/31/25.
+//  Created by Chinguun Khongor on 3/31/25.
 //
 
 import Foundation

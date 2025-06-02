@@ -2,7 +2,7 @@
 //  ExercisesView.swift
 //  BeFit
 //
-//  Created by AI Assistant on 4/25/25.
+//  Created by Chinguun Khongor on 4/25/25.
 //
 
 import SwiftUI

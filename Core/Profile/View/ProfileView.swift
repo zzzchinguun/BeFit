@@ -3,7 +3,7 @@
 //  BeFit
 //
 //  Created by Chinguun Khongor on 3/14/25.
-//  Updated by AI Assistant on 5/8/25 for MVVM architecture
+//  Updated by Chinguun Khongor on 5/8/25 for MVVM architecture
 //
 
 import SwiftUI
@@ -389,7 +389,7 @@ struct ProfileView: View {
                     )
                     Spacer()
                     
-                    Text("1.2.11")
+                    Text("1.3.1")
                         .font(.subheadline)
                         .foregroundColor(.gray)
                 }

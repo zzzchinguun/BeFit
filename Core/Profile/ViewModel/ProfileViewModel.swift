@@ -2,7 +2,7 @@
 //  ProfileViewModel.swift
 //  BeFit
 //
-//  Created by AI Assistant on 5/8/25.
+//  Created by Chinguun Khongor on 5/8/25.
 //
 
 import Foundation

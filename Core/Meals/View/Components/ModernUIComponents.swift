@@ -2,7 +2,7 @@
 //  ModernUIComponents.swift
 //  BeFit
 //
-//  Created by AI Assistant on 5/10/25.
+//  Created by Chinguun Khongor on 5/10/25.
 //
 
 import SwiftUI

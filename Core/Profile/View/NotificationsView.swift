@@ -2,7 +2,7 @@
 //  NotificationsView.swift
 //  BeFit
 //
-//  Created by AI Assistant
+//  Created by Chinguun Khongor
 //
 
 import SwiftUI
@@ -119,7 +119,7 @@ struct NotificationRow: View {
             }
         }
         .padding(.vertical, 8)
-        .background(notification.isRead ? Color.clear : Color.blue.opacity(0.05))
+        
     }
     
     private var notificationIcon: some View {

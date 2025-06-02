@@ -32,13 +32,13 @@ struct LoginView: View {
             
             // Use Mongolian error messages
             if errorMessage.contains("no user found") {
-                return "Ийм и-мэйл хаягтай хэрэглэгч олдсонгүй."
+                return "Та нэвтрэх нэр эсвэл нууц үгээ дахин шалгана уу."
             } else if errorMessage.contains("wrong password") {
                 return "Нууц үг буруу байна."
             } else if errorMessage.contains("network") {
                 return "Интернэт холболтоо шалгана уу."
             } else if errorMessage.contains("deleted") || errorMessage.contains("not found") {
-                return "Та нэвтрэх нэр эсвэл нууц үгээ дахин шалгана у."
+                return "Та нэвтрэх нэр эсвэл нууц үгээ дахин шалгана уу."
             } else if errorMessage.contains("invalid email") {
                 return "И-мэйл хаяг буруу байна."
             } else if errorMessage.contains("disabled") {
@@ -46,7 +46,7 @@ struct LoginView: View {
             } else if errorMessage.contains("too many attempts") {
                 return "Хэт олон удаа оролдлоо. Түр хүлээнэ үү."
             }  else if errorMessage.contains("malformed or has expired") {
-                return "Энэ бүртгэл хаагдсан байна."
+                return "Та нэвтрэх нэр эсвэл нууц үгээ дахин шалгана уу."
             }
             
             // Return the firebase error message if no specific translation
