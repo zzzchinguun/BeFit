@@ -80,10 +80,75 @@ pod install
 - Swift 5.5+
 - Active Firebase account
 
+## Privacy Policy
+
+### Information Collection and Use
+
+BeFit collects and processes the following information to provide and improve our services:
+
+#### Personal Information
+- Email address (for authentication)
+- Name (first and last)
+- Age
+- Weight and height measurements
+- Body composition data
+- Fitness goals and progress
+
+#### Usage Data
+- Workout history
+- Nutrition logs
+- Weight tracking data
+- App usage statistics
+
+### Data Storage and Security
+
+- All data is stored securely using Firebase Firestore
+- User authentication is handled through Firebase Authentication
+- Data is encrypted in transit and at rest
+- We implement appropriate security measures to protect your personal information
+
+### Data Usage
+
+We use your data to:
+- Provide personalized fitness tracking
+- Calculate nutrition and exercise recommendations
+- Track your progress towards fitness goals
+- Improve app functionality and user experience
+
+### Third-Party Services
+
+BeFit uses the following third-party services:
+- Firebase (Authentication, Firestore, Storage)
+- Apple HealthKit (optional, for health data integration)
+
+### Your Rights
+
+You have the right to:
+- Access your personal data
+- Correct inaccurate data
+- Delete your account and associated data
+- Export your data
+- Opt-out of data collection
+
+### Data Retention
+
+- Your data is retained as long as your account is active
+- You can request data deletion by deleting your account
+- Some data may be retained for legal or business purposes
+
+### Contact Information
+
+For privacy-related questions or concerns, please contact:
+   sharshuwuu@gmail.com or follow and dm on instagram(zzzchinguun)
+
+### Updates to Privacy Policy
+
+We may update this privacy policy from time to time. We will notify you of any changes by posting the new privacy policy on this page.
+
 ## License
 
-none 
+MIT License
 
 ## Acknowledgements
 
-
+- [List any third-party libraries, resources or inspirations]
