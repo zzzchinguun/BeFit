@@ -389,7 +389,7 @@ struct ProfileView: View {
                     )
                     Spacer()
                     
-                    Text("1.3.1")
+                    Text("1.4.0")
                         .font(.subheadline)
                         .foregroundColor(.gray)
                 }

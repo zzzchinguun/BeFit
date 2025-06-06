@@ -16,6 +16,7 @@ struct BeFitApp: App {
     
     // This initializes the Firebase app and begins loading user data in the background
     private let appInitializer = AppInitializer()
+    @StateObject private var versionCheckService = VersionCheckService()
     
     // MARK: - Body
     
@@ -23,6 +24,16 @@ struct BeFitApp: App {
         WindowGroup {
             ContentView()
                 .withInjectedEnvironment() // Injects all environment objects
+                .task {
+                    await versionCheckService.checkVersion()
+                }
+                .sheet(isPresented: $versionCheckService.shouldShowUpdatePrompt) {
+                    UpdatePromptView(
+                        isRequiredUpdate: versionCheckService.isRequiredUpdate,
+                        appStoreURL: versionCheckService.appStoreURL
+                    )
+                    .interactiveDismissDisabled(versionCheckService.isRequiredUpdate)
+                }
         }
     }
 }
@@ -39,6 +50,11 @@ class AppInitializer {
         
         // Initialize app defaults if not already set, but don't reset existing values
         setupAppDefaults()
+        
+        // Setup initial version data
+        Task {
+            await VersionSetup.setupInitialVersion()
+        }
     }
     
     private func setupAppDefaults() {

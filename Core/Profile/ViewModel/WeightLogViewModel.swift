@@ -7,11 +7,55 @@ class WeightLogViewModel: ObservableObject {
     @Published var weightLogs: [WeightLog] = []
     @Published var isLoggingWeight: Bool = false
     @Published var isLoadingLogs: Bool = false
-    @Published var newWeight: Double = 0.0
+    @Published var newWeight: Double = 70.0
     @Published var weightNote: String = ""
     @Published var errorMessage: String? = nil
     
     private let userService: UserService = UserService.shared
+    
+    init() {
+        if let user = userService.currentUser {
+            fetchWeightLogs()
+        }
+        
+        // Add observer for user session changes
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleUserSessionChange),
+            name: Notification.Name("userSessionChanged"),
+            object: nil
+        )
+        
+        // Add observer for app becoming active
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAppBecameActive),
+            name: UIApplication.didBecomeActiveNotification,
+            object: nil
+        )
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    @objc private func handleUserSessionChange(_ notification: Notification) {
+        if let _ = notification.object as? User {
+            // User logged in
+            fetchWeightLogs()
+        } else {
+            // User logged out
+            DispatchQueue.main.async {
+                self.weightLogs = []
+            }
+        }
+    }
+    
+    @objc private func handleAppBecameActive() {
+        if userService.currentUser != nil {
+            fetchWeightLogs()
+        }
+    }
     
     // MARK: - Public Methods
     

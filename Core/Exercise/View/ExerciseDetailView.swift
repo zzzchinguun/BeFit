@@ -16,6 +16,7 @@ struct ExerciseDetailView: View {
     @State private var selectedTab = 0
     @State private var selectedDataType = DataType.weight
     @State private var selectedTimeRange = TimeRange.threeMonths
+    @State private var editingLog: WorkoutLog? = nil
     @AppStorage("isDarkMode") private var isDarkMode = false
     
     var body: some View {
@@ -91,6 +92,9 @@ struct ExerciseDetailView: View {
         .sheet(isPresented: $showingLogWorkout) {
             LogWorkoutView(exercise: exercise, viewModel: viewModel)
         }
+        .sheet(item: $editingLog) { log in
+            LogWorkoutView(exercise: exercise, viewModel: viewModel, editingLog: log)
+        }
         .preferredColorScheme(isDarkMode ? .dark : .light)
         .onAppear {
             print("🔄 ExerciseDetailView appeared for: \(exercise.name)")
@@ -141,9 +145,31 @@ struct ExerciseDetailView: View {
                 .padding(.vertical, 40)
             } else {
                 ForEach(logs) { log in
-                    WorkoutLogCard(log: log)
+                    WorkoutLogCard(log: log) {
+                        editingLog = log
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            deleteWorkoutLog(log)
+                        } label: {
+                            Label("Устгах", systemImage: "trash")
+                        }
+                    }
                 }
                 .padding(.horizontal)
+            }
+        }
+    }
+    
+    private func deleteWorkoutLog(_ log: WorkoutLog) {
+        guard let logId = log.id else { return }
+        
+        viewModel.deleteWorkoutLog(logId: logId) { success in
+            if success {
+                // Refresh logs after successful deletion
+                if let userId = viewModel.getCurrentUserId() {
+                    viewModel.fetchUserWorkoutLogs(userId: userId)
+                }
             }
         }
     }
@@ -591,6 +617,7 @@ struct ExerciseStatCard: View {
 
 struct WorkoutLogCard: View {
     let log: WorkoutLog
+    var onEdit: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -603,6 +630,12 @@ struct WorkoutLogCard: View {
                 Text("Нийт: \(Int(log.totalVolume))")
                     .font(.subheadline)
                     .foregroundColor(.gray)
+                
+                Button(action: onEdit) {
+                    Image(systemName: "pencil")
+                        .foregroundColor(.blue)
+                }
+                .padding(.leading, 8)
             }
             
             ForEach(log.sets.indices, id: \.self) { index in

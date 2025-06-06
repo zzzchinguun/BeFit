@@ -18,6 +18,7 @@ struct ModernFoodDetailView: View {
     @State private var foodImage: UIImage? = nil
     @State private var showBarcodeSheet = false
     @State private var showingAddedAlert = false
+    @State private var isAdding = false
     @AppStorage("isDarkMode") private var isDarkMode = false
     @AppStorage("isEnglishLanguage") private var isEnglishLanguage = false
     
@@ -405,7 +406,9 @@ struct ModernFoodDetailView: View {
     
     private var modernAddButton: some View {
         Button(action: {
+            guard !isAdding else { return }
             Task {
+                isAdding = true
                 await addToMealLog()
                 showingAddedAlert = true
                 
@@ -415,8 +418,14 @@ struct ModernFoodDetailView: View {
             }
         }) {
             HStack(spacing: 12) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.title3)
+                if isAdding {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .scaleEffect(0.8)
+                } else {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title3)
+                }
                 
                 Text(isEnglishLanguage ? "Add to Meal Log" : "Хоолны бүртгэлд нэмэх")
                     .fontWeight(.semibold)
@@ -434,6 +443,7 @@ struct ModernFoodDetailView: View {
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .shadow(color: Color.primaryApp.opacity(0.4), radius: 12, x: 0, y: 6)
         }
+        .disabled(isAdding)
         .padding(.horizontal, 20)
         .padding(.bottom, 20)
     }

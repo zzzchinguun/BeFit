@@ -171,6 +171,7 @@ struct WorkoutLog: Identifiable, Codable {
     let date: Date
     var sets: [WorkoutSet]
     let notes: String?
+    var lastModified: Date?
     
     var totalVolume: Double {
         return sets.filter { $0.isCompleted }.reduce(0) { $0 + (Double($1.reps) * $1.weight) }

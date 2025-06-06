@@ -10,30 +10,51 @@ import SwiftUI
 struct LogWorkoutView: View {
     let exercise: Exercise
     @ObservedObject var viewModel: ExerciseViewModel
+    let editingLog: WorkoutLog?
     
     @State private var sets: [WorkoutSetInput]
     @State private var notes: String = ""
     @State private var showingAlert = false
     @State private var alertMessage = ""
     @State private var isLogging = false
+    @State private var showingDeleteConfirmation = false
     @Environment(\.dismiss) private var dismiss
     @AppStorage("isDarkMode") private var isDarkMode = false
     
-    init(exercise: Exercise, viewModel: ExerciseViewModel) {
+    init(exercise: Exercise, viewModel: ExerciseViewModel, editingLog: WorkoutLog? = nil) {
         self.exercise = exercise
         self.viewModel = viewModel
-        _sets = State(initialValue: [WorkoutSetInput()])
+        self.editingLog = editingLog
+        
+        // Initialize sets from editingLog if available
+        if let editingLog = editingLog {
+            _sets = State(initialValue: editingLog.sets.map { WorkoutSetInput(reps: $0.reps, weight: $0.weight) })
+            _notes = State(initialValue: editingLog.notes ?? "")
+        } else {
+            _sets = State(initialValue: [WorkoutSetInput()])
+        }
     }
     
     var body: some View {
         NavigationStack {
             formContent
-                .navigationTitle("Дасгал бичих")
+                .navigationTitle(editingLog != nil ? "Дасгал засах" : "Дасгал бичих")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button("Цуцлах") {
                             dismiss()
+                        }
+                    }
+                    
+                    if editingLog != nil {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button(role: .destructive) {
+                                showingDeleteConfirmation = true
+                            } label: {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
+                            }
                         }
                     }
                 }
@@ -43,6 +64,14 @@ struct LogWorkoutView: View {
                             dismiss()
                         }
                     }
+                }
+                .alert("Дасгал устгах", isPresented: $showingDeleteConfirmation) {
+                    Button("Цуцлах", role: .cancel) { }
+                    Button("Устгах", role: .destructive) {
+                        deleteWorkout()
+                    }
+                } message: {
+                    Text("Энэ дасгалыг устгахдаа итгэлтэй байна уу?")
                 }
                 .preferredColorScheme(isDarkMode ? .dark : .light)
         }
@@ -193,18 +222,68 @@ struct LogWorkoutView: View {
         // Make sure we have a valid exercise ID
         let exerciseId = exercise.id ?? "exercise-\(UUID().uuidString)"
         
-        viewModel.logWorkout(
-            exerciseId: exerciseId,
-            exerciseName: exercise.name,
-            sets: workoutSets,
-            notes: notes.isEmpty ? nil : notes
-        ) { success in
+        if let editingLog = editingLog {
+            // Update existing log
+            viewModel.updateWorkoutLog(
+                logId: editingLog.id ?? "",
+                sets: workoutSets,
+                notes: notes.isEmpty ? nil : notes
+            ) { success in
+                isLogging = false
+                
+                if success {
+                    alertMessage = "Дасгал амжилттай шинэчлэгдлээ!"
+                    // Refresh logs after successful update
+                    if let userId = viewModel.getCurrentUserId() {
+                        viewModel.fetchUserWorkoutLogs(userId: userId)
+                    }
+                } else {
+                    alertMessage = "Дасгал шинэчлэхэд алдаа гарлаа. Дахин оролдоно уу."
+                }
+                
+                showingAlert = true
+            }
+        } else {
+            // Create new log
+            viewModel.logWorkout(
+                exerciseId: exerciseId,
+                exerciseName: exercise.name,
+                sets: workoutSets,
+                notes: notes.isEmpty ? nil : notes
+            ) { success in
+                isLogging = false
+                
+                if success {
+                    alertMessage = "Дасгал амжилттай бүртгэгдлээ!"
+                    // Refresh logs after successful creation
+                    if let userId = viewModel.getCurrentUserId() {
+                        viewModel.fetchUserWorkoutLogs(userId: userId)
+                    }
+                } else {
+                    alertMessage = "Дасгал бүртгэхэд алдаа гарлаа. Дахин оролдоно уу."
+                }
+                
+                showingAlert = true
+            }
+        }
+    }
+    
+    private func deleteWorkout() {
+        guard let editingLog = editingLog, let logId = editingLog.id else { return }
+        
+        isLogging = true
+        
+        viewModel.deleteWorkoutLog(logId: logId) { success in
             isLogging = false
             
             if success {
-                alertMessage = "Дасгал амжилттай бүртгэгдлээ!"
+                alertMessage = "Дасгал амжилттай устгагдлаа!"
+                // Refresh logs after successful deletion
+                if let userId = viewModel.getCurrentUserId() {
+                    viewModel.fetchUserWorkoutLogs(userId: userId)
+                }
             } else {
-                alertMessage = "Дасгал бүртгэхэд алдаа гарлаа. Дахин оролдоно уу."
+                alertMessage = "Дасгал устгахад алдаа гарлаа. Дахин оролдоно уу."
             }
             
             showingAlert = true

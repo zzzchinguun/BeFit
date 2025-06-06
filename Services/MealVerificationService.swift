@@ -50,8 +50,18 @@ class MealVerificationService: FirebaseService, MealVerificationServiceProtocol 
             return
         }
         
+        // Get current user
+        guard let currentUser = AuthService.shared.currentUser.value else {
+            errorMessage.send("Could not get current user data")
+            return
+        }
+        
         // Check if current user is super admin
-        // We'll need to verify this on the server side too
+        guard isUserSuperAdmin(currentUser) else {
+            errorMessage.send("Only super admins can view unverified meals")
+            return
+        }
+        
         isLoading.send(true)
         
         do {

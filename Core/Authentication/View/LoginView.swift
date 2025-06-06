@@ -241,7 +241,7 @@ struct LoginView: View {
                     .foregroundColor(.red)
                     .padding(.top, 5)
                     .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.horizontal, 5)
             }
             

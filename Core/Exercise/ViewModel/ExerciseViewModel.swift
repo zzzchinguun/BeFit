@@ -43,6 +43,14 @@ class ExerciseViewModel: ObservableObject {
             name: Notification.Name("userSessionChanged"),
             object: nil
         )
+        
+        // Add observer for app becoming active
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAppBecameActive),
+            name: UIApplication.didBecomeActiveNotification,
+            object: nil
+        )
     }
     
     deinit {
@@ -61,6 +69,13 @@ class ExerciseViewModel: ObservableObject {
                 self.exercises = Exercise.defaultExercises
                 self.filterExercises()
             }
+        }
+    }
+    
+    @objc private func handleAppBecameActive() {
+        if let userId = userService.currentUser?.id {
+            fetchUserCustomExercises(userId: userId)
+            fetchUserWorkoutLogs(userId: userId)
         }
     }
     
@@ -349,6 +364,38 @@ class ExerciseViewModel: ObservableObject {
             
             DispatchQueue.main.async {
                 self.workoutLogs.removeAll { $0.id == logId }
+                completion(true)
+            }
+        }
+    }
+    
+    func updateWorkoutLog(logId: String, sets: [WorkoutSet], notes: String?, completion: @escaping (Bool) -> Void) {
+        let db = Firestore.firestore()
+        
+        let updateData: [String: Any] = [
+            "sets": sets.map { [
+                "reps": $0.reps,
+                "weight": $0.weight,
+                "isCompleted": $0.isCompleted
+            ]},
+            "notes": notes as Any,
+            "lastModified": Date()
+        ]
+        
+        db.collection("workoutLogs").document(logId).updateData(updateData) { error in
+            if let error = error {
+                print("Error updating workout log: \(error.localizedDescription)")
+                completion(false)
+                return
+            }
+            
+            // Update local data
+            DispatchQueue.main.async {
+                if let index = self.workoutLogs.firstIndex(where: { $0.id == logId }) {
+                    var updatedLog = self.workoutLogs[index]
+                    updatedLog.sets = sets
+                    self.workoutLogs[index] = updatedLog
+                }
                 completion(true)
             }
         }
